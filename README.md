@@ -8,15 +8,65 @@
 
 VietShield WAF is a high-performance, lightweight Web Application Firewall designed specifically for WordPress. It provides robust protection against common web attacks while maintaining your site's speed and reliability.
 
-## 🚀 Key Features
+## �️ Comprehensive Feature List
 
-*   **Advanced WAF Engine**: Protects against SQL Injection (SQLi), Cross-Site Scripting (XSS), Remote Code Execution (RCE), Local File Inclusion (LFI), and Bad Bots.
-*   **Live Traffic Monitoring**: Watch real-time traffic requests with detailed metadata (Country, ASN, User Agent).
-*   **Intelligent IP Management**: Whitelist, Blacklist, and Temporary automatic blocking for suspicious IPs.
-*   **Malware & File Scanner**: Detects core file modifications and potential malware injections.
-*   **Login Security**: Protects against brute-force attacks and unauthorized login attempts.
-*   **Geo-Blocking**: Block traffic from specific high-risk countries.
-*   **Performance First**: Optimized architecture with early-blocking capabilities to minimize server load.
+### 1. Advanced Web Application Firewall (WAF)
+*   **Protection Engine**:
+    *   **SQL Injection (SQLi)**: Blocks UNION SELECT, time-based, and error-based attacks.
+    *   **Cross-Site Scripting (XSS)**: Prevents script injection and malicious event handlers.
+    *   **Remote Code Execution (RCE)**: Stops shell command execution and PHP code injection.
+    *   **Local File Inclusion (LFI)**: Blocks path traversal attempts (e.g., accessing `/etc/passwd`).
+    *   **Advanced Injection**: Specialized rules for OGNL injection, protocol smuggling, and more.
+*   **Firewall Modes**:
+    *   **Learning Mode**: Logs threats silently without blocking (safe for testing).
+    *   **Protecting Mode**: Actively blocks threats with instant feedback (Recommended).
+*   **Early Blocking**: Intercepts threats at the web server level (supports `.htaccess` for Apache and `.user.ini` for Nginx/PHP-FPM) for maximum performance.
+*   **Bad Bots & Scanners**: Automatically identifies and blocks automated tools like SQLMap, Nikto, Nuclei, and dubious User-Agents.
+*   **XML-RPC Protection**: Options to limit or completely block XML-RPC requests to prevent amplification attacks.
+
+### 2. Threat Intelligence & Validation
+*   **Community Threat Feed**: Automatically syncs valid threat data from the VietShield Network (1-day, 7-day, or 30-day categories).
+*   **Threat Sharing**: Contribute to the community by automatically sharing anonymized attack data (optional).
+*   **Geo-Blocking**: Block traffic from specific high-risk countries or regions.
+*   **Auto-Whitelist**:
+    *   **Googlebot**: Automatically validates and whitelists real Google crawlers (updates daily).
+    *   **Cloudflare**: Built-in support for Cloudflare's IP ranges to prevent false positives.
+    *   **Admin Whitelist**: Automatically bypasses WAF checks for logged-in Administrators.
+
+### 3. Malware & Integrity Scanner
+*   **WP Core Scanner**: Verifies WordPress system files against the official repository to detect unauthorized modifications.
+*   **Malware Scanner**:
+    *   **Heuristic Analysis**: Detects obfuscated code, high-entropy strings, and hidden PHP shells.
+    *   **Signature Matching**: Checks against a database of known malware patterns.
+    *   **Dangerous Functions**: Flags potential backdoors using functions like `eval`, `base64_decode`, `shell_exec`, etc.
+*   **Scheduled Scans**: Run scans Daily, Weekly, or Manually on Themes, Plugins, or Uploads.
+
+### 4. Login Security
+*   **Brute Force Protection**: Limits failed login attempts per IP.
+*   **Smart Lockout**: Temporarily bans IPs after X failed attempts (duration configurable from 5m to 24h).
+*   **Honeypot**: Invisible fields to trap bots submitting login forms.
+*   **Email Notifications**: Receive alerts when someone is repeatedly failing to login.
+*   **Author Enumeration**: Blocks attempts to fish for usernames via `?author=N` scans.
+
+### 5. Live Traffic & Analytics
+*   **Real-time Monitoring**: Watch requests hitting your site live with zero latency.
+*   **Detailed Metadata**:
+    *   **IP Analysis**: Country, City, ASN (ISP), and User-Agent.
+    *   **Attack Details**: See exactly why a request was blocked (Rule ID, Payload).
+*   **Privacy Focused**: Options to toggle "Log All Traffic" or "Log Blocked Only", with configurable retention periods.
+*   **Performance**: Logging happens asynchronously to ensure it never slows down page loads.
+
+### 6. IP Management
+*   **Manual Control**: Easily Add/Remove IPs from Whitelist and Blacklist.
+*   **Auto-Ban Logic**: Automatically moves IPs to a temporary ban list if they exceed rate limits or trigger high-severity rules.
+*   **Rate Limiting**:
+    *   **Global**: Limit total requests per minute per IP.
+    *   **Login Page**: Stricter limits for login endpoints.
+    *   **XML-RPC**: Specific limits for XML-RPC calls.
+
+---
+
+## 🏗️ Architecture & Operation Model
 
 ---
 
