@@ -18,3 +18,5 @@ build/
 # Composer
 vendor/
 composer.lock
+
+*.zip
