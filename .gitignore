@@ -1,0 +1,20 @@
+# WordPress
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Node / Tools
+node_modules/
+.idea/
+.vscode/
+
+# Build
+dist/
+build/
+
+# Composer
+vendor/
+composer.lock

@@ -1,0 +1,172 @@
+<?php
+/**
+ * IP Whitelist Sync - Auto-sync Googlebot and Cloudflare IP ranges
+ * 
+ * @package VietShield_WAF
+ */
+
+namespace VietShield\Firewall;
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class IPWhitelistSync {
+    
+    /**
+     * Googlebot JSON endpoints
+     */
+    private static $googlebot_urls = [
+        'googlebot' => 'https://developers.google.com/search/apis/ipranges/googlebot.json',
+        'special-crawlers' => 'https://developers.google.com/search/apis/ipranges/special-crawlers.json',
+        'user-triggered-fetchers' => 'https://developers.google.com/search/apis/ipranges/user-triggered-fetchers.json',
+        'user-triggered-fetchers-google' => 'https://developers.google.com/search/apis/ipranges/user-triggered-fetchers-google.json',
+    ];
+    
+    
+    /**
+     * Sync all enabled IP whitelists
+     */
+    public static function sync_all() {
+        $options = get_option('vietshield_options', []);
+        $results = [];
+        
+        // Sync Googlebot IPs (whitelist bypass)
+        if (!empty($options['whitelist_googlebot'])) {
+            $results['googlebot'] = self::sync_googlebot();
+        }
+        
+        // Update last sync time
+        update_option('vietshield_ip_whitelist_last_sync', time());
+        
+        return $results;
+    }
+    
+    /**
+     * Sync Googlebot IP ranges
+     */
+    public static function sync_googlebot() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'vietshield_ip_lists';
+        $all_prefixes = [];
+        
+        foreach (self::$googlebot_urls as $type => $url) {
+            $response = wp_remote_get($url, [
+                'timeout' => 30,
+                'sslverify' => true,
+            ]);
+            
+            if (is_wp_error($response)) {
+                error_log("VietShield: Failed to fetch Googlebot IPs from {$url}: " . $response->get_error_message());
+                continue;
+            }
+            
+            $body = wp_remote_retrieve_body($response);
+            $data = json_decode($body, true);
+            
+            if (empty($data['prefixes'])) {
+                continue;
+            }
+            
+            foreach ($data['prefixes'] as $prefix) {
+                if (!empty($prefix['ipv4Prefix'])) {
+                    $all_prefixes[] = $prefix['ipv4Prefix'];
+                }
+                if (!empty($prefix['ipv6Prefix'])) {
+                    $all_prefixes[] = $prefix['ipv6Prefix'];
+                }
+            }
+        }
+        
+        if (empty($all_prefixes)) {
+            return ['success' => false, 'count' => 0, 'error' => 'No prefixes found'];
+        }
+        
+        // Remove old Googlebot entries
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$table} WHERE list_type = 'whitelist' AND reason LIKE %s",
+                '%[Googlebot]%'
+            )
+        );
+        
+        // Insert new entries
+        $inserted = 0;
+        $all_prefixes = array_unique($all_prefixes);
+        
+        foreach ($all_prefixes as $ip) {
+            $result = $wpdb->insert($table, [
+                'ip_address' => $ip,
+                'list_type' => 'whitelist',
+                'reason' => '[Googlebot] Auto-synced from Google',
+                'created_at' => current_time('mysql'),
+                'hit_count' => 0,
+            ]);
+            
+            if ($result) {
+                $inserted++;
+            }
+        }
+        
+        error_log("VietShield: Synced {$inserted} Googlebot IP ranges");
+        
+        return ['success' => true, 'count' => $inserted];
+    }
+
+    /**
+     * Get sync status
+     */
+    public static function get_sync_status() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'vietshield_ip_lists';
+        
+        // Googlebot count from database whitelist
+        $googlebot_count = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE list_type = 'whitelist' AND reason LIKE %s",
+                '%[Googlebot]%'
+            )
+        );
+        
+        $last_sync = get_option('vietshield_ip_whitelist_last_sync', 0);
+        
+        return [
+            'googlebot_count' => (int) $googlebot_count,
+            'last_sync' => $last_sync ? date('Y-m-d H:i:s', $last_sync) : null,
+            'next_sync' => wp_next_scheduled('vietshield_ip_whitelist_sync'),
+        ];
+    }
+    
+    /**
+     * Clear all auto-synced IPs
+     */
+    public static function clear_all() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'vietshield_ip_lists';
+        
+        $wpdb->query(
+            "DELETE FROM {$table} WHERE list_type = 'whitelist' AND reason LIKE '%[Googlebot]%'"
+        );
+        
+        delete_option('vietshield_ip_whitelist_last_sync');
+    }
+    
+    /**
+     * Schedule daily sync
+     */
+    public static function schedule_sync() {
+        if (!wp_next_scheduled('vietshield_ip_whitelist_sync')) {
+            wp_schedule_event(time(), 'daily', 'vietshield_ip_whitelist_sync');
+        }
+    }
+    
+    /**
+     * Unschedule sync
+     */
+    public static function unschedule_sync() {
+        $timestamp = wp_next_scheduled('vietshield_ip_whitelist_sync');
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, 'vietshield_ip_whitelist_sync');
+        }
+    }
+}

@@ -1,0 +1,232 @@
+{
+  "name": "Local File Inclusion Rules",
+  "version": "1.0.0",
+  "description": "Rules to detect LFI/Path Traversal attacks",
+  "rules": [
+    {
+      "id": "lfi_001",
+      "name": "Path Traversal - Basic",
+      "description": "Detects basic ../ path traversal",
+      "pattern": "\\.\\.\\/",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_002",
+      "name": "Path Traversal - Backslash",
+      "description": "Detects ..\\ path traversal (Windows)",
+      "pattern": "\\.\\.\\\\",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_003",
+      "name": "Path Traversal - URL Encoded",
+      "description": "Detects URL encoded path traversal",
+      "pattern": "(\\.\\.|%2[eE]%2[eE])(%2[fF]|%5[cC]|\\/|\\\\)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["get", "post"]
+    },
+    {
+      "id": "lfi_004",
+      "name": "Path Traversal - Double Encoded",
+      "description": "Detects double URL encoded traversal",
+      "pattern": "%252e%252e(%252f|%255c)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_005",
+      "name": "Path Traversal - UTF-8 Encoded",
+      "description": "Detects UTF-8 encoded path traversal",
+      "pattern": "(%c0%ae|%c1%9c)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_006",
+      "name": "/etc/passwd Access",
+      "description": "Detects /etc/passwd file access",
+      "pattern": "\\/etc\\/passwd",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_007",
+      "name": "/etc/shadow Access",
+      "description": "Detects /etc/shadow file access",
+      "pattern": "\\/etc\\/shadow",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_008",
+      "name": "/etc/hosts Access",
+      "description": "Detects /etc/hosts file access",
+      "pattern": "\\/etc\\/hosts",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_009",
+      "name": "/proc/self/environ",
+      "description": "Detects /proc/self/environ access",
+      "pattern": "\\/proc\\/self\\/(environ|fd)",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_010",
+      "name": "Log File Poisoning",
+      "description": "Detects log file access attempts",
+      "pattern": "\\/var\\/log\\/(apache|httpd|nginx|auth)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_011",
+      "name": "wp-config.php Access",
+      "description": "Detects wp-config.php file access",
+      "pattern": "wp-config\\.php",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_012",
+      "name": ".htaccess Access",
+      "description": "Detects .htaccess file access",
+      "pattern": "\\.htaccess",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["get", "post"]
+    },
+    {
+      "id": "lfi_013",
+      "name": "PHP Filter Wrapper",
+      "description": "Detects php://filter wrapper usage",
+      "pattern": "php:\\/\\/filter",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_014",
+      "name": "PHP Input Wrapper",
+      "description": "Detects php://input wrapper usage",
+      "pattern": "php:\\/\\/input",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_015",
+      "name": "Expect Wrapper",
+      "description": "Detects expect:// wrapper usage",
+      "pattern": "expect:\\/\\/",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_016",
+      "name": "ZIP Wrapper",
+      "description": "Detects zip:// wrapper usage",
+      "pattern": "zip:\\/\\/",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_017",
+      "name": "PHAR Wrapper",
+      "description": "Detects phar:// wrapper usage",
+      "pattern": "phar:\\/\\/",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_018",
+      "name": "Data Wrapper",
+      "description": "Detects data:// wrapper usage",
+      "pattern": "data:\\/\\/",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_019",
+      "name": "Windows boot.ini",
+      "description": "Detects Windows boot.ini access",
+      "pattern": "[a-z]:[\\\\|/]boot\\.ini",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_020",
+      "name": "Windows System Files",
+      "description": "Detects Windows system file access",
+      "pattern": "[a-z]:[\\\\|/]windows[\\\\|/]system32",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_021",
+      "name": "Null Byte Injection",
+      "description": "Detects null byte injection",
+      "pattern": "%00",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_022",
+      "name": "Absolute Path - Linux",
+      "description": "Detects absolute path with sensitive dirs",
+      "pattern": "^\\/?(etc|var|usr|root|home)\\/",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["get", "post"]
+    },
+    {
+      "id": "lfi_023",
+      "name": "PHP Session Files",
+      "description": "Detects PHP session file access",
+      "pattern": "(sess_|php[a-z0-9]+\\.tmp)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_024",
+      "name": "File Extension Bypass",
+      "description": "Detects file extension bypass attempts",
+      "pattern": "\\.(php|phtml|php[345]|phar)(\\.|%00|\\?|#)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "lfi_025",
+      "name": "HTTP/FTP Wrapper",
+      "description": "Detects HTTP/FTP wrapper RFI attempts",
+      "pattern": "(https?|ftp):\\/\\/[^\\s]+\\.(php|txt|inc)",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    }
+  ]
+}
