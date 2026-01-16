@@ -68,10 +68,6 @@ VietShield WAF is a high-performance, lightweight Web Application Firewall desig
 
 ## 🏗️ Architecture & Operation Model
 
----
-
-## 🏗️ Architecture & Operation Model
-
 VietShield WAF intercepts requests early in the WordPress loading process to filter malicious traffic before it reaches your site's core functions.
 
 ```mermaid
