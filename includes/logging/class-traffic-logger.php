@@ -326,6 +326,54 @@ class TrafficLogger {
                 if (!empty($metadata['as_name'])) {
                     $log['as_name'] = $metadata['as_name'];
                 }
+
+                // Check IP Status (Whitelist/Blacklist/Temporary)
+                // We need to instantiate IPManager only once, or better yet, make static calls if possible.
+                // But IPManager methods are instance methods.
+                // To avoid performance hit, we should potentially cache checking or instantiate once outside the loop?
+                // But this method works on pagination so loop size is small (50).
+                
+                if (!class_exists('\\VietShield\\Firewall\\IPManager')) {
+                   require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-ip-manager.php';
+                }
+                
+                // Use a static approach or singleton if possible, but for now new instance is okay-ish as it caches heavily.
+                // However, repeatedly calling new IPManager() might reload cache if not static.
+                // Let's check IPManager. Cache is static `private static $cache = null;`. Good.
+                
+                $ip_manager = new \VietShield\Firewall\IPManager();
+                
+                $log['ip_status'] = 'clean';
+                $log['ip_status_label'] = '';
+                
+                if ($ip_manager->is_whitelisted($log['ip'])) {
+                    $log['ip_status'] = 'whitelisted';
+                    $log['ip_status_label'] = __('Whitelisted', 'vietshield-waf');
+                } elseif ($ip_manager->is_blacklisted($log['ip'])) {
+                    // is_blacklisted checks both permanent and temporary.
+                    // We need to distinguish for UI.
+                    
+                    // Check specifically for temporary using check_list logic logic which is private.
+                    // But we can check is_blacklisted returns true.
+                    // Let's see if we can check temporary list specifically.
+                    // The get_list method is public. But that's heavy.
+                    // The method get_ip_info returns the row with list_type.
+                    
+                    $info = $ip_manager->get_ip_info($log['ip']);
+                    if ($info) {
+                        if ($info['list_type'] === 'temporary') {
+                             $log['ip_status'] = 'temporary';
+                             $log['ip_status_label'] = __('Temp Blocked', 'vietshield-waf');
+                        } elseif ($info['list_type'] === 'blacklist') {
+                             $log['ip_status'] = 'blacklisted';
+                             $log['ip_status_label'] = __('Blacklisted', 'vietshield-waf');
+                        }
+                    } else {
+                        // Fallback if is_blacklisted was true but get_ip_info returned null (maybe static blacklist from options?)
+                        $log['ip_status'] = 'blacklisted';
+                        $log['ip_status_label'] = __('Blacklisted', 'vietshield-waf');
+                    }
+                }
             }
         }
         unset($log);

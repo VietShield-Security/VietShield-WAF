@@ -144,10 +144,29 @@ $totals = $stats['totals'] ?? [];
                                         </span>
                                     </td>
                                     <td class="action-col">
-                                        <button class="button button-small block-ip-btn" 
-                                                data-ip="<?php echo esc_attr($attack['ip']); ?>">
-                                            <?php _e('Block IP', 'vietshield-waf'); ?>
-                                        </button>
+                                        <?php if ($attack['ip_status'] === 'whitelisted'): ?>
+                                            <span class="dashicons dashicons-yes" title="<?php esc_attr_e('Whitelisted', 'vietshield-waf'); ?>" style="color: #46b450;"></span>
+                                        <?php elseif ($attack['ip_status'] === 'blacklisted'): ?>
+                                            <button class="button button-small unblock-ip-btn button-link-delete" 
+                                                    data-ip="<?php echo esc_attr($attack['ip']); ?>">
+                                                <?php _e('Unblock', 'vietshield-waf'); ?>
+                                            </button>
+                                        <?php elseif ($attack['ip_status'] === 'temporary'): ?>
+                                            <button class="button button-small unblock-ip-btn button-link-delete" 
+                                                    data-ip="<?php echo esc_attr($attack['ip']); ?>" 
+                                                    style="margin-bottom: 2px;">
+                                                <?php _e('Unblock', 'vietshield-waf'); ?>
+                                            </button>
+                                            <button class="button button-small block-ip-btn" 
+                                                    data-ip="<?php echo esc_attr($attack['ip']); ?>">
+                                                <?php _e('Blacklist', 'vietshield-waf'); ?>
+                                            </button>
+                                        <?php else: ?>
+                                            <button class="button button-small block-ip-btn" 
+                                                    data-ip="<?php echo esc_attr($attack['ip']); ?>">
+                                                <?php _e('Block IP', 'vietshield-waf'); ?>
+                                            </button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

@@ -171,9 +171,26 @@ jQuery(document).ready(function($) {
             var asNumber = escapeHtml(log.as_number || '');
             var asName = escapeHtml(log.as_name || '');
             
+            var actionButtons = '<button class="button button-small view-details" data-id="' + parseInt(log.id) + '">View</button> ';
+            
+            if (log.ip_status === 'blacklisted') {
+                 // Already blacklisted - show Unblock
+                 actionButtons += '<button class="button button-small unblock-ip-btn button-link-delete" data-ip="' + safeIp + '" title="<?php esc_attr_e('Unblock IP', 'vietshield-waf'); ?>">Unblock</button>';
+            } else if (log.ip_status === 'temporary') {
+                 // Temporary block - show Unblock (remove temp) or Blacklist (make permanent)
+                 actionButtons += '<button class="button button-small unblock-ip-btn button-link-delete" data-ip="' + safeIp + '" title="<?php esc_attr_e('Unblock IP', 'vietshield-waf'); ?>">Unblock</button> ';
+                 actionButtons += '<button class="button button-small block-ip-btn" data-ip="' + safeIp + '" title="<?php esc_attr_e('Permanently Blacklist', 'vietshield-waf'); ?>">Blacklist</button>';
+            } else if (log.ip_status === 'whitelisted') {
+                 // Whitelisted - show indicator
+                 actionButtons += '<span class="dashicons dashicons-yes" title="<?php esc_attr_e('IP is Whitelisted', 'vietshield-waf'); ?>" style="color: #46b450; font-size: 20px; vertical-align: middle;"></span>';
+            } else {
+                 // Clean IP - show Block
+                 actionButtons += '<button class="button button-small block-ip-btn" data-ip="' + safeIp + '" title="<?php esc_attr_e('Block IP', 'vietshield-waf'); ?>">Block</button>';
+            }
+
             var row = '<tr class="action-' + safeAction + '">' +
                 '<td class="col-time">' + formatTime(log.timestamp) + '</td>' +
-                '<td class="col-ip"><code>' + safeIp + '</code></td>' +
+                '<td class="col-ip"><code>' + safeIp + '</code>' + (log.ip_status_label ? ' <span class="ip-label ' + log.ip_status + '">' + log.ip_status_label + '</span>' : '') + '</td>' +
                 '<td class="col-country">' + (countryCode ? '<span class="country-flag" title="' + countryCode + '">' + countryCode + '</span>' : '-') + '</td>' +
                 '<td class="col-asn-number">' + (asNumber ? '<code>' + asNumber + '</code>' : '-') + '</td>' +
                 '<td class="col-asn-name">' + (asName ? truncate(asName, 30) : '-') + '</td>' +
@@ -182,10 +199,7 @@ jQuery(document).ready(function($) {
                 '<td class="col-action"><span class="action-badge ' + safeAction + '">' + safeAction + '</span></td>' +
                 '<td class="col-type">' + (safeAttackType ? '<span class="attack-type type-' + safeAttackType + '">' + safeAttackType.toUpperCase() + '</span>' : '-') + '</td>' +
                 '<td class="col-block-id">' + (safeBlockId ? '<code>' + safeBlockId + '</code>' : '-') + '</td>' +
-                '<td class="col-actions">' +
-                    '<button class="button button-small view-details" data-id="' + parseInt(log.id) + '">View</button> ' +
-                    '<button class="button button-small block-ip-btn" data-ip="' + safeIp + '">Block</button>' +
-                '</td>' +
+                '<td class="col-actions">' + actionButtons + '</td>' +
             '</tr>';
             tbody.append(row);
         });

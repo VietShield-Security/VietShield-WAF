@@ -327,6 +327,26 @@ class VietShield_Admin_Dashboard {
         $top_ips = $logger->get_top_blocked_ips(10, 7);
         $recent_attacks = $logger->get_recent_attacks(10);
         
+        // Enrich recent attacks with IP status
+        require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-ip-manager.php';
+        $ip_manager = new \VietShield\Firewall\IPManager();
+        
+        foreach ($recent_attacks as &$attack) {
+            $attack['ip_status'] = 'clean';
+            if ($ip_manager->is_whitelisted($attack['ip'])) {
+                $attack['ip_status'] = 'whitelisted';
+            } elseif ($ip_manager->is_blacklisted($attack['ip'])) {
+                // Check if temporary
+                $info = $ip_manager->get_ip_info($attack['ip']);
+                if ($info && $info['list_type'] === 'temporary') {
+                    $attack['ip_status'] = 'temporary';
+                } else {
+                    $attack['ip_status'] = 'blacklisted';
+                }
+            }
+        }
+        unset($attack);
+        
         // Get threat intelligence stats
         $threat_intel_synced = \VietShield\Firewall\ThreatIntelligence::get_total_synced_ips();
         $threat_intel_blocked = \VietShield\Firewall\ThreatIntelligence::get_blocked_count(7);
