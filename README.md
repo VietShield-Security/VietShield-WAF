@@ -2,8 +2,9 @@
 
 **Version:** 1.0.0  
 **Web:** [https://vietshield.org](https://vietshield.org)  
-**Requires PHP:** 7.4+  
-**Requires WP:** 5.0+
+**Requires PHP:** 7.4+ (Optimal: 8.4+)  
+**Requires WP:** 5.0+ (Optimal: 6.9+)  
+**Recommended Webserver:** Nginx/Openresty
 
 VietShield WAF is a high-performance, lightweight Web Application Firewall designed specifically for WordPress. It provides robust protection against common web attacks while maintaining your site's speed and reliability.
 
@@ -96,10 +97,12 @@ Customize the WAF behavior.
 
 ## 🔧 Installation
 
-1.  Upload the `vietshield-waf` folder to the `/wp-content/plugins/` directory.
-2.  Activate the plugin through the 'Plugins' menu in WordPress.
-3.  Follow the **Setup Wizard** to configure basic protection settings.
-4.  Navigate to **VietShield WAF > Settings** to fine-tune your security rules.
+1.  Download the latest release ZIP file from the [Releases page](https://github.com/VietShield-Security/VietShield-WAF/releases).
+2.  Go to your WordPress Admin Dashboard > **Plugins** > **Add New** > **Upload Plugin**.
+3.  Upload the `vietshield-waf.zip` file and click **Install Now**.
+4.  **Activate** the plugin.
+5.  Follow the **Setup Wizard** to configure basic protection settings.
+6.  Go to **VietShield WAF > Settings** to fine-tune your configuration and enjoy the protection!
 
 ---
 
