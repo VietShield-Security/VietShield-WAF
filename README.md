@@ -1,12 +1,19 @@
-# VietShield WAF - WordPress Security Plugin
+# VietShield WAF
+
+**Contributors:** vietshield  
+**Tags:** security, firewall, waf, malware, protection  
+**Requires at least:** 5.0  
+**Tested up to:** 6.9  
+**Stable tag:** 1.0.0  
+**Requires PHP:** 7.4  
+**License:** GPLv2 or later  
+**License URI:** https://www.gnu.org/licenses/gpl-2.0.html
+
+High-performance Web Application Firewall for WordPress with real-time threat detection and blocking.
 
 **Version:** 1.0.0  
 **Web:** [https://vietshield.org](https://vietshield.org)  
-**Requires PHP:** 7.4+ (Optimal: 8.4+)  
-**Requires WP:** 5.0+ (Optimal: 6.9+)  
 **Recommended Webserver:** Nginx/Openresty
-
-VietShield WAF is a high-performance, lightweight Web Application Firewall designed specifically for WordPress. It provides robust protection against common web attacks while maintaining your site's speed and reliability.
 
 ## 🏗️ Architecture & Operation Model
 

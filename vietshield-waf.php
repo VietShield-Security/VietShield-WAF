@@ -121,7 +121,8 @@ function vietshield_init() {
         VietShield_Activator::maybe_upgrade();
     }
 
-    // Load text domain
+    // Load text domain (needed for self-hosted plugins)
+    // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Required for self-hosted translations
     load_plugin_textdomain('vietshield-waf', false, dirname(VIETSHIELD_PLUGIN_BASENAME) . '/languages');
     
     // Initialize Login Security
@@ -216,8 +217,12 @@ add_action('vietshield_threat_intel_initial_sync', function () {
         // Log result for debugging
         if ($result && isset($result['success'])) {
             if ($result['success']) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
                 error_log('VietShield: Threat Intelligence initial sync completed successfully. IPs: ' . ($result['inserted'] ?? 0));
             } else {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
                 error_log('VietShield: Threat Intelligence initial sync failed: ' . ($result['error'] ?? 'Unknown error'));
             }
         }

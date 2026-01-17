@@ -437,7 +437,7 @@ class WAFEngine {
      * @return bool
      */
     private function is_static_file($uri) {
-        $path = parse_url($uri, PHP_URL_PATH);
+        $path = wp_parse_url($uri, PHP_URL_PATH);
         if (!$path) {
             return false;
         }

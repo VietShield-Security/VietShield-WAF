@@ -7,16 +7,16 @@ if (!defined('ABSPATH')) {
     <div class="vietshield-header">
         <div class="vietshield-logo">
             <span class="dashicons dashicons-shield"></span>
-            <h1><?php _e('Live Traffic', 'vietshield-waf'); ?> <span style="font-size: 13px; color: #666; font-weight: 400; margin-left: 8px;">v<?php echo VIETSHIELD_VERSION; ?></span></h1>
+            <h1><?php esc_html_e('Live Traffic', 'vietshield-waf'); ?> <span style="font-size: 13px; color: #666; font-weight: 400; margin-left: 8px;">v<?php echo esc_html(VIETSHIELD_VERSION); ?></span></h1>
         </div>
         <div class="header-actions">
             <button id="toggle-live" class="button button-primary">
                 <span class="dashicons dashicons-controls-pause"></span>
-                <?php _e('Pause', 'vietshield-waf'); ?>
+                <?php esc_html_e('Pause', 'vietshield-waf'); ?>
             </button>
             <button id="clear-logs-btn" class="button">
                 <span class="dashicons dashicons-trash"></span>
-                <?php _e('Clear Logs', 'vietshield-waf'); ?>
+                <?php esc_html_e('Clear Logs', 'vietshield-waf'); ?>
             </button>
         </div>
     </div>
@@ -26,19 +26,19 @@ if (!defined('ABSPATH')) {
         <div class="card-body">
             <div class="traffic-filters">
                 <div class="filter-group">
-                    <label for="filter-action"><?php _e('Action', 'vietshield-waf'); ?></label>
+                    <label for="filter-action"><?php esc_html_e('Action', 'vietshield-waf'); ?></label>
                     <select id="filter-action">
-                        <option value=""><?php _e('All', 'vietshield-waf'); ?></option>
-                        <option value="blocked"><?php _e('Blocked', 'vietshield-waf'); ?></option>
-                        <option value="allowed"><?php _e('Allowed', 'vietshield-waf'); ?></option>
-                        <option value="monitored"><?php _e('Monitored', 'vietshield-waf'); ?></option>
-                        <option value="rate_limited"><?php _e('Rate Limited', 'vietshield-waf'); ?></option>
+                        <option value=""><?php esc_html_e('All', 'vietshield-waf'); ?></option>
+                        <option value="blocked"><?php esc_html_e('Blocked', 'vietshield-waf'); ?></option>
+                        <option value="allowed"><?php esc_html_e('Allowed', 'vietshield-waf'); ?></option>
+                        <option value="monitored"><?php esc_html_e('Monitored', 'vietshield-waf'); ?></option>
+                        <option value="rate_limited"><?php esc_html_e('Rate Limited', 'vietshield-waf'); ?></option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filter-type"><?php _e('Attack Type', 'vietshield-waf'); ?></label>
+                    <label for="filter-type"><?php esc_html_e('Attack Type', 'vietshield-waf'); ?></label>
                     <select id="filter-type">
-                        <option value=""><?php _e('All', 'vietshield-waf'); ?></option>
+                        <option value=""><?php esc_html_e('All', 'vietshield-waf'); ?></option>
                         <option value="sqli">SQL Injection</option>
                         <option value="xss">XSS</option>
                         <option value="rce">RCE</option>
@@ -47,20 +47,20 @@ if (!defined('ABSPATH')) {
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filter-ip"><?php _e('IP Address', 'vietshield-waf'); ?></label>
-                    <input type="text" id="filter-ip" placeholder="Filter by IP">
+                    <label for="filter-ip"><?php esc_html_e('IP Address', 'vietshield-waf'); ?></label>
+                    <input type="text" id="filter-ip" placeholder="<?php esc_attr_e('Filter by IP', 'vietshield-waf'); ?>">
                 </div>
                 <div class="filter-group">
-                    <label for="filter-block-id"><?php _e('Block ID', 'vietshield-waf'); ?></label>
-                    <input type="text" id="filter-block-id" placeholder="Filter by Block ID">
+                    <label for="filter-block-id"><?php esc_html_e('Block ID', 'vietshield-waf'); ?></label>
+                    <input type="text" id="filter-block-id" placeholder="<?php esc_attr_e('Filter by Block ID', 'vietshield-waf'); ?>">
                 </div>
                 <div class="filter-group">
-                    <label for="filter-search"><?php _e('Search', 'vietshield-waf'); ?></label>
-                    <input type="text" id="filter-search" placeholder="Search in URI, UA...">
+                    <label for="filter-search"><?php esc_html_e('Search', 'vietshield-waf'); ?></label>
+                    <input type="text" id="filter-search" placeholder="<?php esc_attr_e('Search in URI, UA...', 'vietshield-waf'); ?>">
                 </div>
                 <div class="filter-group">
                     <label>&nbsp;</label>
-                    <button id="apply-filters" class="button"><?php _e('Apply Filters', 'vietshield-waf'); ?></button>
+                    <button id="apply-filters" class="button"><?php esc_html_e('Apply Filters', 'vietshield-waf'); ?></button>
                 </div>
             </div>
         </div>
@@ -71,31 +71,31 @@ if (!defined('ABSPATH')) {
         <div class="card-body">
             <div id="live-traffic-status" class="live-status">
                 <span class="status-dot live"></span>
-                <span class="status-text"><?php _e('Live - Auto-refreshing every 5 seconds', 'vietshield-waf'); ?></span>
+                <span class="status-text"><?php esc_html_e('Live - Auto-refreshing every 5 seconds', 'vietshield-waf'); ?></span>
             </div>
             
             <div class="table-responsive">
                 <table class="vietshield-table traffic-table" id="traffic-table">
                     <thead>
                         <tr>
-                            <th class="col-time"><?php _e('Time', 'vietshield-waf'); ?></th>
-                            <th class="col-ip"><?php _e('IP', 'vietshield-waf'); ?></th>
-                            <th class="col-country"><?php _e('Country', 'vietshield-waf'); ?></th>
-                            <th class="col-asn-number"><?php _e('ASN Number', 'vietshield-waf'); ?></th>
-                            <th class="col-asn-name"><?php _e('ASN Name', 'vietshield-waf'); ?></th>
-                            <th class="col-method"><?php _e('Method', 'vietshield-waf'); ?></th>
-                            <th class="col-uri"><?php _e('URI', 'vietshield-waf'); ?></th>
-                            <th class="col-action"><?php _e('Action', 'vietshield-waf'); ?></th>
-                            <th class="col-type"><?php _e('Type', 'vietshield-waf'); ?></th>
-                            <th class="col-block-id"><?php _e('Block ID', 'vietshield-waf'); ?></th>
-                            <th class="col-actions"><?php _e('Actions', 'vietshield-waf'); ?></th>
+                            <th class="col-time"><?php esc_html_e('Time', 'vietshield-waf'); ?></th>
+                            <th class="col-ip"><?php esc_html_e('IP', 'vietshield-waf'); ?></th>
+                            <th class="col-country"><?php esc_html_e('Country', 'vietshield-waf'); ?></th>
+                            <th class="col-asn-number"><?php esc_html_e('ASN Number', 'vietshield-waf'); ?></th>
+                            <th class="col-asn-name"><?php esc_html_e('ASN Name', 'vietshield-waf'); ?></th>
+                            <th class="col-method"><?php esc_html_e('Method', 'vietshield-waf'); ?></th>
+                            <th class="col-uri"><?php esc_html_e('URI', 'vietshield-waf'); ?></th>
+                            <th class="col-action"><?php esc_html_e('Action', 'vietshield-waf'); ?></th>
+                            <th class="col-type"><?php esc_html_e('Type', 'vietshield-waf'); ?></th>
+                            <th class="col-block-id"><?php esc_html_e('Block ID', 'vietshield-waf'); ?></th>
+                            <th class="col-actions"><?php esc_html_e('Actions', 'vietshield-waf'); ?></th>
                         </tr>
                     </thead>
                     <tbody id="traffic-body">
                         <tr class="loading-row">
                             <td colspan="11">
                                 <span class="spinner is-active"></span>
-                                <?php _e('Loading traffic data...', 'vietshield-waf'); ?>
+                                <?php esc_html_e('Loading traffic data...', 'vietshield-waf'); ?>
                             </td>
                         </tr>
                     </tbody>
@@ -104,9 +104,9 @@ if (!defined('ABSPATH')) {
 
             <!-- Pagination -->
             <div class="traffic-pagination">
-                <button id="prev-page" class="button" disabled>&laquo; <?php _e('Previous', 'vietshield-waf'); ?></button>
-                <span id="page-info">Page 1</span>
-                <button id="next-page" class="button"><?php _e('Next', 'vietshield-waf'); ?> &raquo;</button>
+                <button id="prev-page" class="button" disabled>&laquo; <?php esc_html_e('Previous', 'vietshield-waf'); ?></button>
+                <span id="page-info"><?php esc_html_e('Page 1', 'vietshield-waf'); ?></span>
+                <button id="next-page" class="button"><?php esc_html_e('Next', 'vietshield-waf'); ?> &raquo;</button>
             </div>
         </div>
     </div>
@@ -116,7 +116,7 @@ if (!defined('ABSPATH')) {
         <div class="modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">
-                <h3><?php _e('Request Details', 'vietshield-waf'); ?></h3>
+                <h3><?php esc_html_e('Request Details', 'vietshield-waf'); ?></h3>
                 <button class="modal-close" type="button">&times;</button>
             </div>
             <div class="modal-body" id="request-details">
@@ -157,7 +157,7 @@ jQuery(document).ready(function($) {
         tbody.empty();
         
         if (data.logs.length === 0) {
-            tbody.append('<tr><td colspan="11" class="empty-cell">No traffic data found</td></tr>');
+            tbody.append('<tr><td colspan="11" class="empty-cell">' + vietshieldAdmin.strings.noData + '</td></tr>');
             return;
         }
         
@@ -205,7 +205,9 @@ jQuery(document).ready(function($) {
         });
         
         // Update pagination
-        $('#page-info').text('Page ' + data.page + ' of ' + data.pages);
+        // vietshieldAdmin.strings.page + ' ' + data.page + ' ' + vietshieldAdmin.strings.of + ' ' + data.pages
+        var pageText = vietshieldAdmin.strings.page + ' ' + data.page + ' ' + vietshieldAdmin.strings.of + ' ' + data.pages;
+        $('#page-info').text(pageText);
         $('#prev-page').prop('disabled', data.page <= 1);
         $('#next-page').prop('disabled', data.page >= data.pages);
     }
@@ -242,17 +244,17 @@ jQuery(document).ready(function($) {
     function startLive() {
         refreshInterval = setInterval(loadTraffic, 5000);
         isLive = true;
-        $('#toggle-live').html('<span class="dashicons dashicons-controls-pause"></span> Pause');
+        $('#toggle-live').html('<span class="dashicons dashicons-controls-pause"></span> ' + vietshieldAdmin.strings.pause);
         $('#live-traffic-status .status-dot').addClass('live');
-        $('#live-traffic-status .status-text').text('Live - Auto-refreshing every 5 seconds');
+        $('#live-traffic-status .status-text').text(vietshieldAdmin.strings.liveStatus);
     }
     
     function stopLive() {
         clearInterval(refreshInterval);
         isLive = false;
-        $('#toggle-live').html('<span class="dashicons dashicons-controls-play"></span> Resume');
+        $('#toggle-live').html('<span class="dashicons dashicons-controls-play"></span> ' + vietshieldAdmin.strings.resume);
         $('#live-traffic-status .status-dot').removeClass('live');
-        $('#live-traffic-status .status-text').text('Paused');
+        $('#live-traffic-status .status-text').text(vietshieldAdmin.strings.pausedStatus);
     }
     
     $('#toggle-live').on('click', function() {

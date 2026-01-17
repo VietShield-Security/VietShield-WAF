@@ -100,6 +100,7 @@ class ResponseHandler {
             'attack_type' => $data['attack_type'] ?? '',
         ]);
         
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML is fully escaped in get_block_page_html
         echo $html;
     }
     
@@ -155,6 +156,10 @@ class ResponseHandler {
         // Get current time in configured timezone
         $current_time = \VietShield_Helpers::get_current_timestamp();
         
+        // Escape for output
+        $timezone_label = htmlspecialchars($timezone_label, ENT_QUOTES, 'UTF-8');
+        $current_time = htmlspecialchars($current_time, ENT_QUOTES, 'UTF-8');
+        
         // Color based on severity
         $colors = [
             'critical' => '#dc2626',
@@ -164,6 +169,7 @@ class ResponseHandler {
         ];
         $accent_color = $colors[$severity] ?? '#dc2626';
         
+        // phpcs:ignore PluginCheck.CodeAnalysis.Heredoc.NotAllowed -- Block page HTML requires heredoc for readability
         return <<<HTML
 <!DOCTYPE html>
 <html lang="vi">

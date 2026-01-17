@@ -27,24 +27,30 @@ class VietShield_Scheduled_Tasks {
         }
         
         $table = $wpdb->prefix . 'vietshield_logs';
-        $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$retention_days} days"));
+        $cutoff_date = gmdate('Y-m-d H:i:s', strtotime("-{$retention_days} days"));
         
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Scheduled cleanup
         $deleted = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$table} WHERE timestamp < %s",
             $cutoff_date
         ));
         
         if ($deleted > 0) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log(sprintf('VietShield: Cleaned up %d old log entries (older than %d days)', $deleted, $retention_days));
         }
         
         // Cleanup old rate limit entries (window_start is a timestamp)
         $rate_limit_table = $wpdb->prefix . 'vietshield_rate_limits';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Scheduled cleanup
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query("DELETE FROM {$rate_limit_table} WHERE window_start < UNIX_TIMESTAMP(NOW() - INTERVAL 1 HOUR)");
         
         // Cleanup old login attempts (keep only last 90 days)
         $login_table = $wpdb->prefix . 'vietshield_login_attempts';
-        $login_cutoff = date('Y-m-d H:i:s', strtotime('-90 days'));
+        $login_cutoff = gmdate('Y-m-d H:i:s', strtotime('-90 days'));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Scheduled cleanup
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$login_table} WHERE timestamp < %s",
             $login_cutoff
@@ -66,12 +72,13 @@ class VietShield_Scheduled_Tasks {
         $timestamps = [$current_ts, $current_ts - 3600];
         
         foreach ($timestamps as $ts) {
-            $date = date('Y-m-d', $ts);
-            $hour = date('H', $ts);
+            $date = gmdate('Y-m-d', $ts);
+            $hour = gmdate('H', $ts);
             
             // Aggregate hourly stats
             // Note: total_requests is now incremented real-time via increment_total_requests()
             // so we only aggregate attack stats from logs table
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Aggregation query
             $hourly_stats = $wpdb->get_row($wpdb->prepare(
                 "SELECT 
                     SUM(CASE WHEN action = 'blocked' THEN 1 ELSE 0 END) as blocked,
@@ -89,6 +96,7 @@ class VietShield_Scheduled_Tasks {
             ), ARRAY_A);
             
             // Get current total_requests from stats table (already incremented real-time)
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Aggregation query
             $current_stats = $wpdb->get_row($wpdb->prepare(
                 "SELECT total_requests FROM {$stats_table}
                  WHERE date = %s AND hour = %s",
@@ -109,6 +117,8 @@ class VietShield_Scheduled_Tasks {
                 ($hourly_stats['bad_bot'] ?? 0) > 0
             )) {
                 // Insert or update stats (preserve total_requests from real-time increments)
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregation update
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
                 $wpdb->replace($stats_table, [
                     'date' => $date,
                     'hour' => $hour,
@@ -127,6 +137,8 @@ class VietShield_Scheduled_Tasks {
                 ]);
             } elseif ($total_requests > 0) {
                 // Even if no attacks, ensure stats row exists with total_requests
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregation update
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
                 $wpdb->replace($stats_table, [
                     'date' => $date,
                     'hour' => $hour,
@@ -147,7 +159,9 @@ class VietShield_Scheduled_Tasks {
         }
         
         // Cleanup old stats (keep only last 90 days)
-        $stats_cutoff = date('Y-m-d', strtotime('-90 days'));
+        $stats_cutoff = gmdate('Y-m-d', strtotime('-90 days'));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Scheduled cleanup
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$stats_table} WHERE date < %s",
             $stats_cutoff
@@ -182,11 +196,15 @@ class VietShield_Scheduled_Tasks {
         ];
         
         foreach ($tables as $table) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Maintenance optimization
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->query("OPTIMIZE TABLE {$table}");
         }
         
         // 2. Cleanup expired temporary IP blocks
         $ip_table = $wpdb->prefix . 'vietshield_ip_lists';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Maintenance cleanup
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query("DELETE FROM {$ip_table} WHERE list_type = 'temporary' AND expires_at < NOW()");
         
         // 2.5. Cleanup old threats queue entries (older than 30 days)
@@ -198,27 +216,42 @@ class VietShield_Scheduled_Tasks {
         $malware_scans_table = $wpdb->prefix . 'vietshield_malware_scans';
         
         // Keep only last 10 file scans
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Maintenance cleanup
         $old_file_scans = $wpdb->get_col("SELECT id FROM {$file_scans_table} ORDER BY id DESC LIMIT 10, 999999");
         if (!empty($old_file_scans)) {
             $ids = implode(',', array_map('intval', $old_file_scans));
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- IDs are intval-sanitized
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->query("DELETE FROM {$file_scans_table} WHERE id IN ({$ids})");
             $items_table = $wpdb->prefix . 'vietshield_file_scan_items';
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- IDs are intval-sanitized
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->query("DELETE FROM {$items_table} WHERE scan_id IN ({$ids})");
         }
         
         // Keep only last 10 malware scans
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Maintenance cleanup
         $old_malware_scans = $wpdb->get_col("SELECT id FROM {$malware_scans_table} ORDER BY id DESC LIMIT 10, 999999");
         if (!empty($old_malware_scans)) {
             $ids = implode(',', array_map('intval', $old_malware_scans));
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- IDs are intval-sanitized
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->query("DELETE FROM {$malware_scans_table} WHERE id IN ({$ids})");
             $items_table = $wpdb->prefix . 'vietshield_malware_scan_items';
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- IDs are intval-sanitized
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->query("DELETE FROM {$items_table} WHERE scan_id IN ({$ids})");
         }
         
         // 4. Clear expired transients
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Transient cleanup
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_vietshield_%' AND option_value < UNIX_TIMESTAMP()");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Transient cleanup
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_vietshield_%' AND option_value < UNIX_TIMESTAMP()");
         
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
         error_log('VietShield: Maintenance tasks completed');
     }
 }

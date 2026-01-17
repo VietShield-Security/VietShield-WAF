@@ -86,6 +86,7 @@ class GeoLocator {
             }
         } catch (\Exception $e) {
             // MaxMind not available or error
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield GeoIP MaxMind error: ' . $e->getMessage());
         }
         

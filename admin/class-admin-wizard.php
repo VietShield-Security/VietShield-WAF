@@ -33,7 +33,8 @@ class VietShield_Admin_Wizard {
         global $title, $pagenow;
         
         // Check if we're on the wizard page
-        $current_page = $_GET['page'] ?? '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Just reading page name for title
+        $current_page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
         if ($current_page === 'vietshield-wizard' && empty($title)) {
             $title = __('Setup Wizard', 'vietshield-waf');
         }
@@ -59,7 +60,8 @@ class VietShield_Admin_Wizard {
         }
         
         // Don't redirect on admin-post requests
-        $pagenow = $GLOBALS['pagenow'] ?? basename($_SERVER['PHP_SELF']);
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Just for page name comparison
+        $pagenow = $GLOBALS['pagenow'] ?? (isset($_SERVER['PHP_SELF']) ? basename(sanitize_text_field(wp_unslash($_SERVER['PHP_SELF']))) : '');
         if ($pagenow === 'admin-post.php' || $pagenow === 'admin-ajax.php') {
             return;
         }
@@ -69,11 +71,13 @@ class VietShield_Admin_Wizard {
         
         if (!$wizard_completed) {
             // Get current page info
-            $current_page = $_GET['page'] ?? '';
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Just reading page name for redirect
+            $current_page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
             $is_wizard_page = ($current_page === 'vietshield-wizard');
             $is_settings_page = ($current_page === 'vietshield-settings');
             $is_plugins_page = ($pagenow === 'plugins.php');
-            $is_activation = (isset($_GET['activate']) && $_GET['activate'] === 'true');
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Just checking activation state
+            $is_activation = (isset($_GET['activate']) && sanitize_text_field(wp_unslash($_GET['activate'])) === 'true');
             
             // Always redirect to wizard if:
             // 1. Not already on wizard page
@@ -112,6 +116,7 @@ class VietShield_Admin_Wizard {
      * Render wizard page
      */
     public function render_wizard() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Just reading step number for display
         $current_step = isset($_GET['step']) ? intval($_GET['step']) : 1;
         $webserver = $this->detect_webserver();
         
@@ -122,7 +127,8 @@ class VietShield_Admin_Wizard {
      * Detect webserver type
      */
     public function detect_webserver() {
-        $server_software = $_SERVER['SERVER_SOFTWARE'] ?? '';
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Server software string for detection
+        $server_software = isset($_SERVER['SERVER_SOFTWARE']) ? sanitize_text_field(wp_unslash($_SERVER['SERVER_SOFTWARE'])) : '';
         $server_software = strtolower($server_software);
         
         // Check for Apache
@@ -175,7 +181,8 @@ class VietShield_Admin_Wizard {
         }
         
         $step = isset($_POST['step']) ? intval($_POST['step']) : 0;
-        $data = isset($_POST['data']) ? $_POST['data'] : [];
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Array data, sanitized when used
+        $data = isset($_POST['data']) ? map_deep(wp_unslash($_POST['data']), 'sanitize_text_field') : [];
         
         // Save step data
         update_option('vietshield_wizard_step_' . $step, $data);
@@ -193,7 +200,8 @@ class VietShield_Admin_Wizard {
             wp_send_json_error(['message' => __('Permission denied', 'vietshield-waf')]);
         }
         
-        $data = isset($_POST['data']) ? $_POST['data'] : [];
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Array data, sanitized when used
+        $data = isset($_POST['data']) ? map_deep(wp_unslash($_POST['data']), 'sanitize_text_field') : [];
         
         // Get all wizard steps data
         $wizard_data = [];

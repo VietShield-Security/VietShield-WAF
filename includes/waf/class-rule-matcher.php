@@ -206,6 +206,7 @@ class RuleMatcher {
         // Check for regex errors
         $error = error_get_last();
         if ($error !== $prev_error && $error !== null && strpos($error['message'], 'preg_match') !== false) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield WAF: Invalid regex pattern in rule ' . ($rule['id'] ?? 'unknown') . ': ' . $error['message'] . ' Pattern: ' . $pattern);
             return false;
         }
@@ -237,6 +238,7 @@ class RuleMatcher {
         // Check for regex errors
         $error = error_get_last();
         if ($error !== $prev_error && $error !== null && strpos($error['message'], 'preg_match') !== false) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield WAF: Invalid regex pattern in get_matched_string: ' . $error['message'] . ' Pattern: ' . $pattern);
             return '';
         }

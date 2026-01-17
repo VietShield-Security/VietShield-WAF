@@ -117,7 +117,7 @@ class RateLimiter {
      */
     private function is_static_file($uri) {
         // Remove query string
-        $path = parse_url($uri, PHP_URL_PATH);
+        $path = wp_parse_url($uri, PHP_URL_PATH);
         if (!$path) {
             return false;
         }
@@ -215,6 +215,7 @@ class RateLimiter {
         
         if (!$updated) {
             // Insert new record
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->query($wpdb->prepare(
                 "INSERT INTO {$this->table} (ip, endpoint, request_count, window_start) 
                  VALUES (%s, %s, 1, %d)
@@ -255,11 +256,13 @@ class RateLimiter {
         global $wpdb;
         
         if ($endpoint) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->delete($this->table, [
                 'ip' => $ip,
                 'endpoint' => $endpoint,
             ]);
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->delete($this->table, ['ip' => $ip]);
         }
     }

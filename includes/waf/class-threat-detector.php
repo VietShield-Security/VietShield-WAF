@@ -428,7 +428,7 @@ class ThreatDetector {
         if (!empty($uri) && !$this->is_wordpress_login_redirect($request_data)) {
             // Extract path only (without query string) for URI checking
             // Query string parameters are already checked separately above
-            $uri_path = parse_url($uri, PHP_URL_PATH);
+            $uri_path = wp_parse_url($uri, PHP_URL_PATH);
             if ($uri_path === null) {
                 $uri_path = $uri;
             }

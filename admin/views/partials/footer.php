@@ -12,16 +12,16 @@ if (!defined('ABSPATH')) {
 <div class="vietshield-footer">
     <p class="vietshield-copyright">
         <?php
-        $current_year = date('Y');
+        $vswaf_current_year = wp_date('Y');
         printf(
             /* translators: %1$s: Current year, %2$s: Link to VietShield website */
-            __('Copyright © %1$s <a href="%2$s" target="_blank" rel="noopener noreferrer">VietShield WAF</a>', 'vietshield-waf'),
-            esc_html($current_year),
-            esc_url('https://vietshield.org')
+            esc_html__('Copyright © %1$s %2$s', 'vietshield-waf'),
+            esc_html($vswaf_current_year),
+            '<a href="' . esc_url('https://vietshield.org') . '" target="_blank" rel="noopener noreferrer">VietShield WAF</a>'
         );
         ?>
     </p>
     <p class="vietshield-version">
-        Version: <?php echo VIETSHIELD_VERSION; ?>
+        Version: <?php echo esc_html(VIETSHIELD_VERSION); ?>
     </p>
 </div>

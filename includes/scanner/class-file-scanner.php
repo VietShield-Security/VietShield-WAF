@@ -28,6 +28,7 @@ class FileScanner {
         $started_at = current_time('mysql', true);
         $core_version = get_bloginfo('version');
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->insert($table_scans, [
             'started_at' => $started_at,
             'status' => self::STATUS_RUNNING,
@@ -57,6 +58,7 @@ class FileScanner {
         }
 
         if (!is_array($checksums)) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->update($table_scans, [
                 'status' => self::STATUS_FAILED,
                 'finished_at' => current_time('mysql', true),
@@ -113,6 +115,7 @@ class FileScanner {
         $this->scan_unknown_core_files($scan_id, $table_items, $known_files, $summary);
 
         $finished_at = current_time('mysql', true);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->update($table_scans, [
             'finished_at' => $finished_at,
             'status' => self::STATUS_COMPLETED,
@@ -216,6 +219,7 @@ class FileScanner {
     private function insert_item($table, $scan_id, $data) {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->insert($table, [
             'scan_id' => $scan_id,
             'file_path' => $data['file_path'],

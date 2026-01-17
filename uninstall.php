@@ -34,7 +34,8 @@ delete_transient('vietshield_threat_intel_syncing_initial');
 // Remove database tables
 global $wpdb;
 
-$tables = [
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Uninstall file, variables are local
+$vietshield_tables = [
     $wpdb->prefix . 'vietshield_logs',
     $wpdb->prefix . 'vietshield_ip_lists',
     $wpdb->prefix . 'vietshield_rate_limits',
@@ -48,8 +49,10 @@ $tables = [
     $wpdb->prefix . 'vietshield_threats_queue',
 ];
 
-foreach ($tables as $table) {
-    $wpdb->query("DROP TABLE IF EXISTS $table");
+foreach ($vietshield_tables as $vietshield_table) {
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Uninstall cleanup
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
+    $wpdb->query("DROP TABLE IF EXISTS $vietshield_table");
 }
 
 // Clear scheduled cron jobs

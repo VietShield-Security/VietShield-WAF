@@ -178,6 +178,13 @@ class VietShield_Admin_Dashboard {
                 'confirmBlock' => __('Are you sure you want to block this IP?', 'vietshield-waf'),
                 'confirmUnblock' => __('Are you sure you want to unblock this IP?', 'vietshield-waf'),
                 'confirmClearLogs' => __('Are you sure you want to clear all logs?', 'vietshield-waf'),
+                'pause' => __('Pause', 'vietshield-waf'),
+                'resume' => __('Resume', 'vietshield-waf'),
+                'liveStatus' => __('Live - Auto-refreshing every 5 seconds', 'vietshield-waf'),
+                'pausedStatus' => __('Paused', 'vietshield-waf'),
+                'noData' => __('No traffic data found', 'vietshield-waf'),
+                'page' => __('Page', 'vietshield-waf'),
+                'of' => __('of', 'vietshield-waf'),
             ]
         ]);
     }
@@ -363,9 +370,9 @@ class VietShield_Admin_Dashboard {
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-ip-manager.php';
         $ip_manager = new VietShield\Firewall\IPManager();
         
-        $whitelist = $ip_manager->get_list('whitelist');
-        $blacklist = $ip_manager->get_list('blacklist');
-        $temporary = $ip_manager->get_list('temporary');
+        $vswaf_whitelist = $ip_manager->get_list('whitelist');
+        $vswaf_blacklist = $ip_manager->get_list('blacklist');
+        $vswaf_temporary = $ip_manager->get_list('temporary');
         
         include VIETSHIELD_PLUGIN_DIR . 'admin/views/firewall.php';
     }
@@ -402,8 +409,8 @@ class VietShield_Admin_Dashboard {
         $this->maybe_redirect_to_wizard();
         
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/scanner/class-file-scanner.php';
-        $scanner = new \VietShield\Scanner\FileScanner();
-        $latest_scan = $scanner->get_latest_scan();
+        $vswaf_scanner = new \VietShield\Scanner\FileScanner();
+        $vswaf_latest_scan = $vswaf_scanner->get_latest_scan();
 
         include VIETSHIELD_PLUGIN_DIR . 'admin/views/file-scanner.php';
     }
@@ -415,8 +422,8 @@ class VietShield_Admin_Dashboard {
         $this->maybe_redirect_to_wizard();
         
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/scanner/class-malware-scanner.php';
-        $scanner = new \VietShield\Scanner\MalwareScanner();
-        $latest_scan = $scanner->get_latest_scan();
+        $vswaf_scanner = new \VietShield\Scanner\MalwareScanner();
+        $vswaf_latest_scan = $vswaf_scanner->get_latest_scan();
 
         include VIETSHIELD_PLUGIN_DIR . 'admin/views/malware-scanner.php';
     }
@@ -454,6 +461,7 @@ class VietShield_Admin_Dashboard {
         // Check if there's data in the table
         global $wpdb;
         $table = $wpdb->prefix . 'vietshield_threat_intel';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Safe table name
         $count = $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
         
         if ($count > 0) {
@@ -476,11 +484,14 @@ class VietShield_Admin_Dashboard {
         // Log result for debugging
         if ($result && isset($result['success'])) {
             if ($result['success']) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
                 error_log('VietShield: Threat Intelligence initial sync completed. IPs: ' . ($result['inserted'] ?? 0));
             } else {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
                 error_log('VietShield: Threat Intelligence initial sync failed: ' . ($result['error'] ?? 'Unknown error'));
             }
         } else {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Threat Intelligence initial sync - no result returned');
         }
     }
@@ -492,12 +503,12 @@ class VietShield_Admin_Dashboard {
         ?>
         <div class="notice notice-success is-dismissible">
             <p>
-                <strong><?php _e('VietShield WAF has been activated!', 'vietshield-waf'); ?></strong>
-                <?php _e('Your site is now protected. Visit the', 'vietshield-waf'); ?>
-                <a href="<?php echo admin_url('admin.php?page=vietshield-waf'); ?>">
-                    <?php _e('dashboard', 'vietshield-waf'); ?>
+                <strong><?php esc_html_e('VietShield WAF has been activated!', 'vietshield-waf'); ?></strong>
+                <?php esc_html_e('Your site is now protected. Visit the', 'vietshield-waf'); ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=vietshield-waf')); ?>">
+                    <?php esc_html_e('dashboard', 'vietshield-waf'); ?>
                 </a>
-                <?php _e('to configure settings.', 'vietshield-waf'); ?>
+                <?php esc_html_e('to configure settings.', 'vietshield-waf'); ?>
             </p>
         </div>
         <?php
@@ -538,11 +549,11 @@ class VietShield_Admin_Dashboard {
         $args = [
             'page' => isset($_POST['page']) ? absint($_POST['page']) : 1,
             'per_page' => isset($_POST['per_page']) ? absint($_POST['per_page']) : 50,
-            'action' => sanitize_text_field($_POST['action_filter'] ?? ''),
-            'attack_type' => sanitize_text_field($_POST['attack_type'] ?? ''),
-            'ip' => sanitize_text_field($_POST['ip'] ?? ''),
-            'block_id' => sanitize_text_field($_POST['block_id'] ?? ''),
-            'search' => sanitize_text_field($_POST['search'] ?? ''),
+            'action' => isset($_POST['action_filter']) ? sanitize_text_field(wp_unslash($_POST['action_filter'])) : '',
+            'attack_type' => isset($_POST['attack_type']) ? sanitize_text_field(wp_unslash($_POST['attack_type'])) : '',
+            'ip' => isset($_POST['ip']) ? sanitize_text_field(wp_unslash($_POST['ip'])) : '',
+            'block_id' => isset($_POST['block_id']) ? sanitize_text_field(wp_unslash($_POST['block_id'])) : '',
+            'search' => isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '',
         ];
         
         $logs = $logger->get_logs($args);
@@ -569,6 +580,7 @@ class VietShield_Admin_Dashboard {
         global $wpdb;
         $table = $wpdb->prefix . 'vietshield_logs';
         
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Safe table name, value prepared
         $log = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table} WHERE id = %d",
             $log_id
@@ -635,7 +647,7 @@ class VietShield_Admin_Dashboard {
         $scan_id = isset($_POST['scan_id']) ? absint($_POST['scan_id']) : 0;
         $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
         $per_page = isset($_POST['per_page']) ? absint($_POST['per_page']) : 50;
-        $status = sanitize_text_field($_POST['status'] ?? '');
+        $status = isset($_POST['status']) ? sanitize_text_field(wp_unslash($_POST['status'])) : '';
 
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/scanner/class-file-scanner.php';
         $scanner = new \VietShield\Scanner\FileScanner();
@@ -764,7 +776,7 @@ class VietShield_Admin_Dashboard {
             wp_send_json_error('Malware scanner is disabled');
         }
 
-        $scope = sanitize_text_field($_POST['scope'] ?? 'all');
+        $scope = isset($_POST['scope']) ? sanitize_text_field(wp_unslash($_POST['scope'])) : 'all';
         $allowed_scopes = ['all', 'themes', 'plugins', 'uploads', 'mu-plugins'];
         if (!in_array($scope, $allowed_scopes, true)) {
             $scope = 'all';
@@ -790,7 +802,7 @@ class VietShield_Admin_Dashboard {
         $scan_id = isset($_POST['scan_id']) ? absint($_POST['scan_id']) : 0;
         $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
         $per_page = isset($_POST['per_page']) ? absint($_POST['per_page']) : 50;
-        $severity = sanitize_text_field($_POST['severity'] ?? '');
+        $severity = isset($_POST['severity']) ? sanitize_text_field(wp_unslash($_POST['severity'])) : '';
 
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/scanner/class-malware-scanner.php';
         $scanner = new \VietShield\Scanner\MalwareScanner();
@@ -827,7 +839,9 @@ class VietShield_Admin_Dashboard {
         }
 
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query('TRUNCATE TABLE ' . $wpdb->prefix . 'vietshield_malware_scan_items');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query('TRUNCATE TABLE ' . $wpdb->prefix . 'vietshield_malware_scans');
 
         wp_send_json_success(['message' => 'Malware scan history cleared successfully']);
@@ -844,7 +858,9 @@ class VietShield_Admin_Dashboard {
         }
 
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query('TRUNCATE TABLE ' . $wpdb->prefix . 'vietshield_file_scan_items');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query('TRUNCATE TABLE ' . $wpdb->prefix . 'vietshield_file_scans');
 
         wp_send_json_success(['message' => 'File scan history cleared successfully']);
@@ -860,7 +876,7 @@ class VietShield_Admin_Dashboard {
             wp_send_json_error('Unauthorized');
         }
 
-        $category = sanitize_text_field($_POST['category'] ?? '');
+        $category = isset($_POST['category']) ? sanitize_text_field(wp_unslash($_POST['category'])) : '';
         $allowed_categories = ['1d', '3d', '7d', '14d', '30d'];
         
         if (!in_array($category, $allowed_categories, true)) {
@@ -872,7 +888,9 @@ class VietShield_Admin_Dashboard {
 
         try {
             // Increase execution time for large feeds
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Required for large threat intel sync
             @set_time_limit(600); // 10 minutes
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Required for large threat intel sync
             @ini_set('max_execution_time', 600);
             
             require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-threat-intelligence.php';
@@ -905,6 +923,7 @@ class VietShield_Admin_Dashboard {
             }
         } catch (\Exception $e) {
             delete_transient('vietshield_threat_intel_syncing');
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield Threat Intel Sync Error: ' . $e->getMessage());
             wp_send_json_error([
                 'message' => 'Sync failed: ' . $e->getMessage(),
@@ -996,9 +1015,9 @@ class VietShield_Admin_Dashboard {
             wp_send_json_error('Unauthorized');
         }
         
-        $ip = sanitize_text_field($_POST['ip'] ?? '');
-        $reason = sanitize_text_field($_POST['reason'] ?? 'Manually blocked');
-        $duration = absint($_POST['duration'] ?? 0);
+        $ip = isset($_POST['ip']) ? sanitize_text_field(wp_unslash($_POST['ip'])) : '';
+        $reason = isset($_POST['reason']) ? sanitize_text_field(wp_unslash($_POST['reason'])) : 'Manually blocked';
+        $duration = isset($_POST['duration']) ? absint($_POST['duration']) : 0;
         
         if (!filter_var($ip, FILTER_VALIDATE_IP)) {
             wp_send_json_error('Invalid IP address');
@@ -1032,7 +1051,7 @@ class VietShield_Admin_Dashboard {
             wp_send_json_error('Unauthorized');
         }
         
-        $ip = sanitize_text_field($_POST['ip'] ?? '');
+        $ip = isset($_POST['ip']) ? sanitize_text_field(wp_unslash($_POST['ip'])) : '';
         
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-ip-manager.php';
         $ip_manager = new VietShield\Firewall\IPManager();
@@ -1059,6 +1078,8 @@ class VietShield_Admin_Dashboard {
         
         global $wpdb;
         $table = $wpdb->prefix . 'vietshield_logs';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Admin log clear
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query("TRUNCATE TABLE $table");
         
         wp_send_json_success(['message' => 'Logs cleared successfully']);

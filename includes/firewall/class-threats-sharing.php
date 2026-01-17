@@ -57,6 +57,7 @@ class ThreatsSharing {
         
         if ($existing) {
             // Update existing queue entry with latest data
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->update(
                 $table,
                 [
@@ -156,6 +157,7 @@ class ThreatsSharing {
                 $item['organization'] = $item['organization'] ?: ($meta['org'] ?? null);
                 
                 // Update DB with enriched data so we don't lookup again on retry
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
                 $wpdb->update(
                     $table,
                     [
@@ -220,6 +222,7 @@ class ThreatsSharing {
             foreach ($pending as $item) {
                 if (in_array($item['ip'], $successful_ips)) {
                     // Mark as submitted
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
                     $wpdb->update(
                         $table,
                         [
@@ -234,6 +237,7 @@ class ThreatsSharing {
                     $submitted_count++;
                 } else {
                     // Increment retry count
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
                     $wpdb->update(
                         $table,
                         [
@@ -250,6 +254,7 @@ class ThreatsSharing {
         } else {
             // All failed - increment retry count
             foreach ($pending as $item) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
                 $wpdb->update(
                     $table,
                     [
@@ -349,6 +354,7 @@ class ThreatsSharing {
         ]);
         
         if (is_wp_error($response)) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield Threats Sharing API Error: ' . $response->get_error_message());
             return [
                 'success' => false,
@@ -370,6 +376,7 @@ class ThreatsSharing {
         
         // Handle error response
         $error_message = $result['error'] ?? 'Unknown error';
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
         error_log('VietShield Threats Sharing API Error: ' . $error_message);
         
         return [
@@ -382,7 +389,7 @@ class ThreatsSharing {
      * Get current domain
      */
     private static function get_domain() {
-        $domain = parse_url(home_url(), PHP_URL_HOST);
+        $domain = wp_parse_url(home_url(), PHP_URL_HOST);
         return $domain ?: '';
     }
     
@@ -483,6 +490,7 @@ class ThreatsSharing {
         }
         
         // Delete submitted entries older than 30 days
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query(
             "DELETE FROM $table 
              WHERE submitted = 1 

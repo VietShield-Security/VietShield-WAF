@@ -115,9 +115,8 @@ class TrafficLogger {
         global $wpdb;
         
         // Use WP local time to match aggregation logic
-        $current_time = current_time('timestamp');
-        $date = date('Y-m-d', $current_time);
-        $hour = date('H', $current_time);
+        $date = wp_date('Y-m-d');
+        $hour = wp_date('H');
         $updated_at = current_time('mysql');
         
         // Increment total_requests only
@@ -128,6 +127,7 @@ class TrafficLogger {
                 total_requests = total_requests + 1,
                 updated_at = %s";
                 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is safe, query properly prepared
         $wpdb->query($wpdb->prepare($sql, 
             $date, $hour, $updated_at,
             $updated_at
@@ -143,9 +143,8 @@ class TrafficLogger {
         global $wpdb;
         
         // Use WP local time to match aggregation logic
-        $current_time = current_time('timestamp');
-        $date = date('Y-m-d', $current_time);
-        $hour = date('H', $current_time);
+        $date = wp_date('Y-m-d');
+        $hour = wp_date('H');
         
         $blocked = ($data['action'] === 'blocked') ? 1 : 0;
         $rate_limited = ($data['action'] === 'rate_limited') ? 1 : 0;
@@ -176,6 +175,7 @@ class TrafficLogger {
                 bad_bot = bad_bot + %d,
                 updated_at = %s";
                 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is safe, query properly prepared
         $wpdb->query($wpdb->prepare($sql, 
             // VALUES params
             $date, $hour, 
@@ -278,8 +278,10 @@ class TrafficLogger {
         // Get total count
         $count_sql = "SELECT COUNT(*) FROM {$this->table} WHERE {$where_sql}";
         if (!empty($values)) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Dynamic where clause, values properly prepared
             $count_sql = $wpdb->prepare($count_sql, $values);
         }
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query properly prepared above
         $total = $wpdb->get_var($count_sql);
         
         // Get results
@@ -294,6 +296,7 @@ class TrafficLogger {
             );
         }
         
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query properly prepared, columns sanitized
         $results = $wpdb->get_results($sql, ARRAY_A);
         
         // Format timestamps according to configured timezone
@@ -399,6 +402,7 @@ class TrafficLogger {
         
         // Try threat intelligence table first
         $threat_table = $wpdb->prefix . 'vietshield_threat_intel';
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is safe, query properly prepared
         $threat_data = $wpdb->get_row($wpdb->prepare(
             "SELECT country_code, as_number, organization 
              FROM {$threat_table} 
@@ -425,7 +429,33 @@ class TrafficLogger {
             ];
         }
         
-        // Check cache first
+        // Check existing logs for this IP's metadata (reuse from previous entries)
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Performance optimization
+        $existing_log = $wpdb->get_row($wpdb->prepare(
+            "SELECT country_code, as_number, as_name 
+             FROM {$this->table} 
+             WHERE ip = %s 
+               AND (country_code != '' OR as_number != '')
+             ORDER BY id DESC 
+             LIMIT 1",
+            $ip
+        ), ARRAY_A);
+        
+        if ($existing_log && (!empty($existing_log['country_code']) || !empty($existing_log['as_number']))) {
+            $metadata = [
+                'country_code' => $existing_log['country_code'] ?? '',
+                'as_number' => $existing_log['as_number'] ?? '',
+                'as_name' => $existing_log['as_name'] ?? '',
+            ];
+            
+            // Cache the result for future requests in this session
+            $cache_key = 'ip_metadata_' . md5($ip);
+            wp_cache_set($cache_key, $metadata, 'vietshield_ip_metadata', 3600);
+            
+            return $metadata;
+        }
+        
+        // Check transient cache
         $cache_key = 'ip_metadata_' . md5($ip);
         $cached = wp_cache_get($cache_key, 'vietshield_ip_metadata');
         
@@ -700,6 +730,7 @@ class TrafficLogger {
                 }
                 
                 if (!empty($update_data)) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
                     $wpdb->update(
                         $this->table,
                         $update_data,
@@ -714,6 +745,7 @@ class TrafficLogger {
                 $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$threat_table} WHERE ip_address = %s", $ip));
                 
                 if ($exists) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
                     $wpdb->update(
                         $threat_table,
                         [
@@ -725,6 +757,7 @@ class TrafficLogger {
                         ['ip_address' => $ip]
                     );
                 } else {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
                     $wpdb->insert(
                         $threat_table,
                         [

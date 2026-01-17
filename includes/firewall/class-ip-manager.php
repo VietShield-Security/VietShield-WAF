@@ -222,7 +222,7 @@ class IPManager {
         $expires_at = null;
         
         if ($type === 'temporary' && $duration > 0) {
-            $expires_at = date('Y-m-d H:i:s', time() + $duration);
+            $expires_at = gmdate('Y-m-d H:i:s', time() + $duration);
         }
         
         return $this->add_to_list($ip, $type, $reason, $expires_at);
@@ -243,6 +243,7 @@ class IPManager {
         
         if ($existing) {
             // Update existing
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->update(
                 $this->table,
                 [
@@ -324,6 +325,7 @@ class IPManager {
         // Also try range
         $where['ip_range'] = $ip;
         unset($where['ip_address']);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->delete($this->table, $where);
         
         // Clear cache
@@ -359,6 +361,7 @@ class IPManager {
     public function increment_hit_count($ip) {
         global $wpdb;
         
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query($wpdb->prepare(
             "UPDATE {$this->table} 
              SET hit_count = hit_count + 1 

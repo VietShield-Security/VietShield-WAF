@@ -57,6 +57,7 @@ class IPWhitelistSync {
             ]);
             
             if (is_wp_error($response)) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
                 error_log("VietShield: Failed to fetch Googlebot IPs from {$url}: " . $response->get_error_message());
                 continue;
             }
@@ -83,6 +84,7 @@ class IPWhitelistSync {
         }
         
         // Remove old Googlebot entries
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query(
             $wpdb->prepare(
                 "DELETE FROM {$table} WHERE list_type = 'whitelist' AND reason LIKE %s",
@@ -108,6 +110,7 @@ class IPWhitelistSync {
             }
         }
         
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
         error_log("VietShield: Synced {$inserted} Googlebot IP ranges");
         
         return ['success' => true, 'count' => $inserted];
@@ -132,7 +135,7 @@ class IPWhitelistSync {
         
         return [
             'googlebot_count' => (int) $googlebot_count,
-            'last_sync' => $last_sync ? date('Y-m-d H:i:s', $last_sync) : null,
+            'last_sync' => $last_sync ? gmdate('Y-m-d H:i:s', $last_sync) : null,
             'next_sync' => wp_next_scheduled('vietshield_ip_whitelist_sync'),
         ];
     }
@@ -144,6 +147,7 @@ class IPWhitelistSync {
         global $wpdb;
         $table = $wpdb->prefix . 'vietshield_ip_lists';
         
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query(
             "DELETE FROM {$table} WHERE list_type = 'whitelist' AND reason LIKE '%[Googlebot]%'"
         );

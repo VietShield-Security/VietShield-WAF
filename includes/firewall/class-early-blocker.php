@@ -81,6 +81,7 @@ class EarlyBlocker {
             // Don't update option here - it will cause infinite loop
             // The value will be synced in handle_options_update hook
             // Just log for debugging if needed
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: early_blocking_enabled needs sync, but skipping update to avoid loop');
         }
         
@@ -99,10 +100,11 @@ class EarlyBlocker {
         $blocked_ips = [
             'exact' => [],
             'ranges' => [],
-            'updated' => date('Y-m-d H:i:s'),
+            'updated' => gmdate('Y-m-d H:i:s'),
         ];
         
         // Get blacklisted IPs (permanent + temporary)
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is safe, no user input
         $blacklist = $wpdb->get_results(
             "SELECT ip_address, ip_range, reason, list_type 
              FROM {$ip_table} 
@@ -150,7 +152,9 @@ class EarlyBlocker {
         
         // Ensure directory is writable
         $blocked_ips_dir = dirname($this->blocked_ips_file);
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical early blocker code
         if (!is_writable($blocked_ips_dir)) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Blocked IPs directory is not writable: ' . $blocked_ips_dir);
             return [
                 'success' => false,
@@ -160,10 +164,14 @@ class EarlyBlocker {
         
         // Check if file exists and is writable
         if (file_exists($this->blocked_ips_file)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
             if (!is_writable($this->blocked_ips_file)) {
                 // Try to make file writable
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Performance critical
                 @chmod($this->blocked_ips_file, 0644);
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
                 if (!is_writable($this->blocked_ips_file)) {
+                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
                     error_log('VietShield: Blocked IPs file exists but is not writable: ' . $this->blocked_ips_file);
                     return [
                         'success' => false,
@@ -187,6 +195,7 @@ class EarlyBlocker {
         if ($result === false) {
             $error = error_get_last();
             $error_msg = $error['message'] ?? 'Unknown error';
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Failed to write blocked IPs file: ' . $error_msg);
             
             // Try to get more info about the file
@@ -204,11 +213,13 @@ class EarlyBlocker {
         }
         
         // Ensure file has correct permissions after writing
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Performance critical
         @chmod($this->blocked_ips_file, 0644);
         
         // Ensure blocker file exists
         if (!file_exists($this->blocker_file)) {
             // Blocker file should be created during activation
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Blocker file not found at ' . $this->blocker_file);
             return [
                 'success' => false,
@@ -219,6 +230,7 @@ class EarlyBlocker {
         // Enable in .user.ini or .htaccess
         $enable_result = $this->enable();
         if (!$enable_result) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Failed to enable early blocking in .user.ini/.htaccess');
             // Don't fail completely - file sync was successful
         }
@@ -299,11 +311,14 @@ class EarlyBlocker {
         // - Nginx + PHP-FPM
         // - Any setup using PHP-FPM
         // Check if file exists and is writable, or if we can create it
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
         if (file_exists($this->user_ini_file) && is_writable($this->user_ini_file)) {
             $this->enable_user_ini();
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
         } elseif (is_writable(ABSPATH)) {
             $this->enable_user_ini();
         } else {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Cannot enable .user.ini - neither file nor ABSPATH is writable');
         }
         
@@ -313,6 +328,7 @@ class EarlyBlocker {
             // Double-check: only enable if we're really sure it's Apache
             $server_software = $_SERVER['SERVER_SOFTWARE'] ?? '';
             if (stripos($server_software, 'apache') !== false || function_exists('apache_get_modules')) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
                 if (file_exists($this->htaccess_file) || is_writable(ABSPATH)) {
                     $this->enable_htaccess();
                 }
@@ -330,11 +346,15 @@ class EarlyBlocker {
     private function enable_user_ini() {
         // Check if .user.ini file is writable or if we can create it
         if (file_exists($this->user_ini_file)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
             if (!is_writable($this->user_ini_file)) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
                 error_log('VietShield: .user.ini exists but is not writable');
                 return false;
             }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
         } elseif (!is_writable(ABSPATH)) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Cannot create .user.ini - ABSPATH is not writable');
             return false;
         }
@@ -357,8 +377,10 @@ class EarlyBlocker {
         $result = $this->insert_with_markers($this->user_ini_file, $marker_start, $marker_end, $rules);
         
         if ($result) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Successfully configured .user.ini for early blocking');
         } else {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Failed to configure .user.ini for early blocking');
         }
         
@@ -404,10 +426,12 @@ class EarlyBlocker {
      */
     private function insert_with_markers($filename, $marker_start, $marker_end, $content) {
         if (!file_exists($filename)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
             if (!is_writable(dirname($filename))) {
                 return false;
             }
             file_put_contents($filename, '');
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
         } elseif (!is_writable($filename)) {
             return false;
         }
@@ -434,6 +458,7 @@ class EarlyBlocker {
             return true;
         }
         
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
         if (!is_writable($filename)) {
             return false;
         }

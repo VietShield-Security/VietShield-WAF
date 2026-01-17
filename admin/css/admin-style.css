@@ -1856,3 +1856,194 @@
         padding-right: 32px !important;
     }
 }
+/* Firewall Mode Redesign */
+.vietshield-radio-group {
+    display: flex;
+    gap: 16px;
+}
+
+.radio-card {
+    position: relative;
+    display: flex;
+    flex: 1;
+    gap: 16px;
+    padding: 20px;
+    background: white;
+    border: 1px solid var(--vs-border);
+    border-radius: var(--vs-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.radio-card:hover {
+    border-color: var(--vs-primary);
+    background: var(--vs-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.radio-card.active {
+    border-color: var(--vs-primary);
+    background: #eff6ff;
+    box-shadow: 0 0 0 1px var(--vs-primary), 0 4px 6px -1px rgba(37, 99, 235, 0.1);
+}
+
+.radio-card input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.radio-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: var(--vs-light);
+    border-radius: 12px;
+    flex-shrink: 0;
+    color: var(--vs-gray);
+    transition: all 0.2s;
+}
+
+.radio-card.active .radio-icon {
+    background: var(--vs-primary);
+    color: white;
+}
+
+.radio-icon .dashicons {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+}
+
+.radio-content {
+    flex: 1;
+}
+
+.radio-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.radio-header strong {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--vs-dark);
+}
+
+.radio-check {
+    margin-left: auto;
+    color: var(--vs-primary);
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.radio-card.active .radio-check {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.radio-content p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--vs-gray);
+    line-height: 1.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+    .vietshield-radio-group {
+        flex-direction: column;
+    }
+}
+
+/* Modern Tabs Redesign */
+.vietshield-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    background: white;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--vs-border);
+    border-radius: var(--vs-radius) var(--vs-radius) 0 0;
+}
+
+.tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 20px;
+    color: var(--vs-gray);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+}
+
+.tab-btn:hover {
+    color: var(--vs-primary);
+    background: #f8fafc;
+}
+
+.tab-btn:focus {
+    box-shadow: none;
+    outline: none;
+}
+
+.tab-btn.active {
+    color: var(--vs-primary);
+    border-bottom-color: var(--vs-primary);
+    background: transparent;
+}
+
+.tab-btn .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+/* Hide default WP tabs if any remain */
+.nav-tab-wrapper.vietshield-nav-tabs {
+    display: none;
+}
+
+/* Adjust content padding */
+.vietshield-tab-content {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    margin-top: 0;
+    padding-top: 0;
+}
+
+/* Threat Intel Buttons Alignment */
+#threat-intel-sync-btn,
+#threat-intel-clear-btn,
+#ip-whitelist-sync-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px; /* Fixed height for consistency */
+    line-height: 1;
+}
+
+#threat-intel-sync-btn .dashicons,
+#threat-intel-clear-btn .dashicons,
+#ip-whitelist-sync-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    line-height: 1;
+}

@@ -110,6 +110,7 @@ class ThreatIntelligence {
         
         // Log response for debugging
         if (empty($data) || !is_array($data)) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield Threat Intel: Invalid JSON response. Body: ' . substr($body, 0, 500));
             return [
                 'success' => false,
@@ -119,6 +120,7 @@ class ThreatIntelligence {
         
         if (empty($data['success']) || !isset($data['data'])) {
             $error_msg = $data['error'] ?? 'Invalid response format';
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield Threat Intel: API error - ' . $error_msg . ' Response: ' . json_encode($data));
             return [
                 'success' => false,
@@ -127,6 +129,7 @@ class ThreatIntelligence {
         }
         
         // Log success
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
         error_log('VietShield Threat Intel: Fetched ' . count($data['data']) . ' IPs from category ' . $category);
         
         return [
@@ -155,6 +158,7 @@ class ThreatIntelligence {
         }
         
         // Clear existing data for this category
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query("TRUNCATE TABLE {$table}");
         
         // Clear cache (WordPress doesn't have flush_group, so we'll clear on-demand)
@@ -162,6 +166,7 @@ class ThreatIntelligence {
         // Insert new data in batches
         $ips = $feed['data'] ?? [];
         if (empty($ips) || !is_array($ips)) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield Threat Intel: No IPs in feed data. Feed keys: ' . json_encode(array_keys($feed)) . ' Total: ' . ($feed['total'] ?? 0));
             return [
                 'success' => false,
@@ -169,6 +174,7 @@ class ThreatIntelligence {
             ];
         }
         
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
         error_log('VietShield Threat Intel: Starting sync for ' . count($ips) . ' IPs from category ' . $category);
         
         $batch_size = 1000;
@@ -225,6 +231,7 @@ class ThreatIntelligence {
         update_option('vietshield_threat_intel_last_sync', current_time('mysql'));
         update_option('vietshield_threat_intel_sync_count', $inserted);
         
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
         error_log('VietShield Threat Intel: Sync completed. Inserted ' . $inserted . ' IPs from ' . ($feed['total'] ?? 0) . ' total');
         
         // Sync early blocker if enabled
@@ -255,7 +262,7 @@ class ThreatIntelligence {
         
         // Get next scheduled sync time
         $next_sync = wp_next_scheduled('vietshield_threat_intel_sync');
-        $next_sync_time = $next_sync ? date('Y-m-d H:i:s', $next_sync) : '';
+        $next_sync_time = $next_sync ? wp_date('Y-m-d H:i:s', $next_sync) : '';
         
         return [
             'count' => (int) $count,
@@ -312,6 +319,7 @@ class ThreatIntelligence {
         global $wpdb;
         $table = $wpdb->prefix . 'vietshield_threat_intel';
         
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query("TRUNCATE TABLE {$table}");
         
         delete_option('vietshield_threat_intel_last_sync');
@@ -388,8 +396,10 @@ class ThreatIntelligence {
         $result = $threat_intel->sync_feed($category);
         
         if ($result['success']) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log(sprintf('VietShield: Auto-synced threat intelligence feed (%s): %s IPs', $category, number_format($result['inserted'])));
         } else {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Failed to auto-sync threat intelligence feed: ' . ($result['error'] ?? 'Unknown error'));
         }
         
@@ -423,9 +433,11 @@ class ThreatIntelligence {
         }
         
         $sql = "INSERT INTO {$table} (ip_address, country_code, as_number, organization, last_updated, category) VALUES " . implode(', ', $placeholders);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name safe, each value properly prepared above
         $result = $wpdb->query($sql);
         
         if ($result === false && !empty($wpdb->last_error)) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield Threat Intel Insert Error: ' . $wpdb->last_error);
             return false;
         }

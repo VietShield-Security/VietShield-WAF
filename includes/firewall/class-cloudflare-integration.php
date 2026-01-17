@@ -154,6 +154,7 @@ class CloudflareIntegration {
             ]);
             
             if (is_wp_error($response)) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
                 error_log("VietShield: Failed to fetch Cloudflare IPs from {$url}: " . $response->get_error_message());
                 continue;
             }
@@ -185,6 +186,7 @@ class CloudflareIntegration {
         // Clear static cache
         self::$cloudflare_ips = $all_ips;
         
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
         error_log("VietShield: Synced " . count($all_ips) . " Cloudflare IP ranges");
         
         return ['success' => true, 'count' => count($all_ips)];
@@ -201,7 +203,7 @@ class CloudflareIntegration {
         return [
             'count' => count($cached['ips'] ?? []),
             'synced_at' => $cached['synced_at'] ?? null,
-            'expires' => !empty($cached['expires']) ? date('Y-m-d H:i:s', $cached['expires']) : null,
+            'expires' => !empty($cached['expires']) ? gmdate('Y-m-d H:i:s', $cached['expires']) : null,
         ];
     }
     

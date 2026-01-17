@@ -94,9 +94,10 @@ class LoginSecurity {
         
         // Add to whitelist with note
         $note = sprintf(
-            __('Auto-whitelisted: Admin login by %s on %s', 'vietshield-waf'),
-            $username,
-            current_time('Y-m-d H:i:s')
+            /* translators: %1$s: Username, %2$s: Date/time of login */
+            __('Auto-whitelisted: Admin login by %1$s on %2$s', 'vietshield-waf'),
+            sanitize_text_field($username),
+            wp_date('Y-m-d H:i:s')
         );
         
         $ip_manager->add_to_whitelist($ip, $note);
@@ -140,8 +141,8 @@ class LoginSecurity {
         
         if ($this->is_ip_blocked($ip)) {
             wp_die(
-                __('Your IP address has been temporarily blocked due to too many failed login attempts.', 'vietshield-waf'),
-                __('Login Blocked', 'vietshield-waf'),
+                esc_html__('Your IP address has been temporarily blocked due to too many failed login attempts.', 'vietshield-waf'),
+                esc_html__('Login Blocked', 'vietshield-waf'),
                 ['response' => 403]
             );
         }
@@ -153,11 +154,14 @@ class LoginSecurity {
     private function log_attempt($ip, $username, $success) {
         global $wpdb;
         
+        $user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])) : '';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->insert($this->table, [
             'ip' => $ip,
             'username' => $username,
             'success' => $success ? 1 : 0,
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+            'user_agent' => $user_agent,
             'timestamp' => current_time('mysql'),
         ], [
             '%s', '%s', '%d', '%s', '%s'
@@ -189,11 +193,14 @@ class LoginSecurity {
             // Log to WAF logs
             require_once VIETSHIELD_PLUGIN_DIR . 'includes/logging/class-traffic-logger.php';
             $logger = new \VietShield\Logging\TrafficLogger();
+            
+            $user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])) : '';
+            
             $logger->log([
                 'ip' => $ip,
                 'request_uri' => '/wp-login.php',
                 'request_method' => 'POST',
-                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+                'user_agent' => $user_agent,
                 'action' => 'blocked',
                 'rule_id' => 'login_brute_force',
                 'attack_type' => 'brute_force',
@@ -247,6 +254,7 @@ class LoginSecurity {
         global $wpdb;
         
         // Only clear if there are recent failed attempts
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->table}
              WHERE ip = %s AND success = 0",
@@ -287,11 +295,13 @@ class LoginSecurity {
         }
         
         // Verify nonce (optional, WordPress already has CSRF protection)
-        if (isset($_POST['vietshield_login_nonce']) && 
-            !wp_verify_nonce($_POST['vietshield_login_nonce'], 'vietshield_login')) {
-            // Invalid nonce - might be CSRF
-            $ip = $this->get_client_ip();
-            $this->log_attempt($ip, $username ?: 'unknown', false);
+        if (isset($_POST['vietshield_login_nonce'])) {
+            $nonce = sanitize_text_field(wp_unslash($_POST['vietshield_login_nonce']));
+            if (!wp_verify_nonce($nonce, 'vietshield_login')) {
+                // Invalid nonce - might be CSRF
+                $ip = $this->get_client_ip();
+                $this->log_attempt($ip, $username ?: 'unknown', false);
+            }
         }
         
         return $user;
@@ -309,12 +319,14 @@ class LoginSecurity {
         // Only send if threshold reached
         if ($failed_count >= $threshold) {
             $subject = sprintf(
+                /* translators: %s: Site name */
                 __('[%s] Failed Login Attempts Detected', 'vietshield-waf'),
                 get_bloginfo('name')
             );
             
             $message = sprintf(
-                __("Multiple failed login attempts detected:\n\nIP Address: %s\nUsername: %s\nFailed Attempts: %d\nTime: %s\n\n", 'vietshield-waf'),
+                /* translators: %1$s: IP address, %2$s: Username, %3$d: Number of failed attempts, %4$s: Time */
+                __("Multiple failed login attempts detected:\n\nIP Address: %1\$s\nUsername: %2\$s\nFailed Attempts: %3\$d\nTime: %4\$s\n\n", 'vietshield-waf'),
                 $ip,
                 $username,
                 $failed_count,
@@ -340,6 +352,7 @@ class LoginSecurity {
         
         foreach ($headers as $header) {
             if (!empty($_SERVER[$header])) {
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- IP validation below
                 $ip = $_SERVER[$header];
                 if (strpos($ip, ',') !== false) {
                     $ip = trim(explode(',', $ip)[0]);
@@ -350,7 +363,8 @@ class LoginSecurity {
             }
         }
         
-        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Fallback IP
+        return isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '0.0.0.0';
     }
     
     /**
