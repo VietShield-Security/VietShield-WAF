@@ -5,7 +5,7 @@
  * Description: High-performance Web Application Firewall (WAF) for WordPress. Protects against SQL Injection, XSS, RCE, and more with advanced traffic analysis and real-time blocking.
  * Version: 1.0.0
  * Author: VietShield Security
- * Author URI: https://vietshield.org
+ * Author URI: https://github.com/VietShield-Security
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: vietshield-waf
