@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 class ThreatsSharing {
     
     const API_URL = 'https://intelligence.vietshield.org/api/submit.php';
-    const API_KEY = 'To2xwnzQrzDsh8y1Usr1Sw90U14ieJGe';
+    const SHARED_SECRET = 'VietShield_WAF_Secure_Share_2026_Key_!@#'; // Shared secret for initial handshake
     const QUEUE_TABLE = 'vietshield_threats_queue';
     const BATCH_SIZE = 50; // Submit up to 50 IPs per batch
     const MAX_RETRIES = 3;
@@ -310,7 +310,7 @@ class ThreatsSharing {
         
         return $results;
     }
-    
+
     /**
      * Submit IPs to Intelligence API
      * 
@@ -322,11 +322,18 @@ class ThreatsSharing {
             return ['success' => false, 'message' => 'No IPs to submit'];
         }
         
+        // Get site key
+        $site_key = get_option('vietshield_site_key');
+        $domain = self::get_domain();
+        
         // Prepare request data
         $data = [
-            'api_key' => self::API_KEY,
-            'domain' => self::get_domain(),
+            'domain' => $domain,
         ];
+        
+        if ($site_key) {
+            $data['site_key'] = $site_key;
+        }
         
         // Use batch format if multiple IPs
         if (count($ips) > 1) {
@@ -337,18 +344,34 @@ class ThreatsSharing {
             $data['ip'] = $ip_data['ip'];
             $data['reason'] = $ip_data['reason'] ?? '';
             $data['type'] = $ip_data['type'] ?? '';
-            // Removed category
             $data['country_code'] = $ip_data['country_code'] ?? null;
             $data['as_number'] = $ip_data['as_number'] ?? null;
             $data['organization'] = $ip_data['organization'] ?? null;
         }
         
-        // Make API request
+        // Create signature
+        $json_body = json_encode($data);
+        $timestamp = time();
+        
+        // Signature = HMAC(body . timestamp . [site_key], SHARED_SECRET)
+        // Note: For simplicity and backward compatibility during migration, we use 
+        // SHARED_SECRET as the key for HMAC, and include site_key in data if available.
+        // On server side, it verifies site_key matches domain if present.
+        $sig_data = $json_body . $timestamp;
+        if ($site_key) {
+            $sig_data .= $site_key;
+        }
+        
+        $signature = hash_hmac('sha256', $sig_data, self::SHARED_SECRET);
+        
+        // Make API request with headers
         $response = wp_remote_post(self::API_URL, [
             'headers' => [
                 'Content-Type' => 'application/json',
+                'X-VietShield-Timestamp' => $timestamp,
+                'X-VietShield-Signature' => $signature
             ],
-            'body' => json_encode($data),
+            'body' => $json_body,
             'timeout' => 30,
             'sslverify' => true,
         ]);
@@ -366,12 +389,19 @@ class ThreatsSharing {
         $body = wp_remote_retrieve_body($response);
         $result = json_decode($body, true);
         
-        if ($status_code === 200 && isset($result['success']) && $result['success']) {
-            return [
-                'success' => true,
-                'message' => $result['message'] ?? 'IPs submitted successfully',
-                'results' => $result['results'] ?? []
-            ];
+        if ($status_code === 200) {
+            // Check for new site key registration
+            if (isset($result['site_key']) && empty($site_key)) {
+                update_option('vietshield_site_key', sanitize_text_field($result['site_key']));
+            }
+            
+            if (isset($result['success']) && $result['success']) {
+                return [
+                    'success' => true,
+                    'message' => $result['message'] ?? 'IPs submitted successfully',
+                    'results' => $result['results'] ?? []
+                ];
+            }
         }
         
         // Handle error response
