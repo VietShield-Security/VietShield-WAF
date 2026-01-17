@@ -229,7 +229,7 @@ jQuery(document).ready(function($) {
         if (step === 1) {
             // Step 1: Web server (already detected)
             saveStep(1, vswafWizardData);
-            window.location.href = '<?php echo esc_url(admin_url('admin.php?page=vietshield-wizard&step=2')); ?>';
+            window.location.href = '<?php echo esc_url_raw(admin_url('admin.php?page=vietshield-wizard&step=2')); ?>';
         } else if (step === 2) {
             // Step 2: Firewall mode
             var firewallMode = $('input[name="firewall_mode"]:checked').val();
@@ -239,7 +239,7 @@ jQuery(document).ready(function($) {
             }
             data.firewall_mode = firewallMode;
             saveStep(2, data);
-            window.location.href = '<?php echo esc_url(admin_url('admin.php?page=vietshield-wizard&step=3')); ?>';
+            window.location.href = '<?php echo esc_url_raw(admin_url('admin.php?page=vietshield-wizard&step=3')); ?>';
         }
     });
     
@@ -247,9 +247,9 @@ jQuery(document).ready(function($) {
     $('.wizard-prev').on('click', function() {
         var step = parseInt($(this).data('step'));
         if (step === 2) {
-            window.location.href = '<?php echo esc_url(admin_url('admin.php?page=vietshield-wizard&step=1')); ?>';
+            window.location.href = '<?php echo esc_url_raw(admin_url('admin.php?page=vietshield-wizard&step=1')); ?>';
         } else if (step === 3) {
-            window.location.href = '<?php echo esc_url(admin_url('admin.php?page=vietshield-wizard&step=2')); ?>';
+            window.location.href = '<?php echo esc_url_raw(admin_url('admin.php?page=vietshield-wizard&step=2')); ?>';
         }
     });
     
