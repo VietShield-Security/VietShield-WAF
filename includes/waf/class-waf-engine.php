@@ -329,27 +329,106 @@ class WAFEngine {
             return;
         }
         
+        // Skip private/local IPs
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return;
+        }
+        
         // Skip if IP is whitelisted
         $ip_manager = new \VietShield\Firewall\IPManager();
         if ($ip_manager->is_whitelisted($ip)) {
             return;
         }
         
-        // Get metadata from request data
+        // Get metadata from request data (if available)
         $metadata = [
             'country_code' => $this->request_data['country_code'] ?? '',
             'as_number' => $this->request_data['as_number'] ?? '',
             'organization' => $this->request_data['as_name'] ?? '',
         ];
         
+        // If metadata is empty, try to get from threat intel table or existing logs
+        if (empty($metadata['country_code']) && empty($metadata['as_number'])) {
+            $metadata = $this->get_ip_metadata_quick($ip);
+        }
+        
         // Prepare reason
         if (empty($reason)) {
             $reason = $attack_type ? ucfirst($attack_type) . ' attack detected' : 'Malicious activity detected';
         }
         
-        // Queue IP for submission
+        // Queue IP for submission (metadata can be empty, will be enriched during submission)
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-threats-sharing.php';
         \VietShield\Firewall\ThreatsSharing::queue_ip($ip, $reason, $attack_type, $severity, $metadata);
+    }
+    
+    /**
+     * Get IP metadata quickly (from cache/threat intel table, no API call)
+     * 
+     * @param string $ip
+     * @return array
+     */
+    private function get_ip_metadata_quick($ip) {
+        global $wpdb;
+        
+        // Try threat intelligence table first (fastest)
+        $threat_table = $wpdb->prefix . 'vietshield_threat_intel';
+        $threat_data = $wpdb->get_row($wpdb->prepare(
+            "SELECT country_code, as_number, organization 
+             FROM {$threat_table} 
+             WHERE ip_address = %s 
+             LIMIT 1",
+            $ip
+        ), ARRAY_A);
+        
+        if ($threat_data) {
+            $as_number_raw = $threat_data['as_number'] ?? '';
+            $organization = $threat_data['organization'] ?? '';
+            
+            // Parse AS info if needed
+            $as_number = $as_number_raw;
+            $as_name = $organization;
+            
+            if (preg_match('/^AS(\d+)\s+(.+)$/i', $as_number_raw, $matches)) {
+                $as_number = 'AS' . $matches[1];
+                $as_name = empty($organization) ? trim($matches[2]) : $organization;
+            } elseif (preg_match('/^AS(\d+)$/i', $as_number_raw)) {
+                $as_number = $as_number_raw;
+            }
+            
+            return [
+                'country_code' => $threat_data['country_code'] ?? '',
+                'as_number' => $as_number,
+                'organization' => $as_name,
+            ];
+        }
+        
+        // Try existing logs (recent entries)
+        $log_table = $wpdb->prefix . 'vietshield_logs';
+        $existing_log = $wpdb->get_row($wpdb->prepare(
+            "SELECT country_code, as_number, as_name 
+             FROM {$log_table} 
+             WHERE ip = %s 
+               AND (country_code != '' OR as_number != '')
+             ORDER BY id DESC 
+             LIMIT 1",
+            $ip
+        ), ARRAY_A);
+        
+        if ($existing_log) {
+            return [
+                'country_code' => $existing_log['country_code'] ?? '',
+                'as_number' => $existing_log['as_number'] ?? '',
+                'organization' => $existing_log['as_name'] ?? '',
+            ];
+        }
+        
+        // Return empty - will be enriched during submission
+        return [
+            'country_code' => '',
+            'as_number' => '',
+            'organization' => '',
+        ];
     }
     
     /**
