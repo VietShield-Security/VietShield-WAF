@@ -32,7 +32,16 @@ if (is_array($blocked_ips) && !empty($blocked_ips)) {
     if (isset($blocked_ips['exact'][$ip])) {
         $reason = $blocked_ips['exact'][$ip];
         // Determine attack type from reason
-        $attack_type = ($reason === 'Threat Intelligence') ? 'threat_intelligence' : '';
+        $attack_type = 'ip_blacklist';
+        
+        if ($reason === 'Threat Intelligence') {
+            $attack_type = 'threat_intelligence';
+        } elseif (strpos($reason, 'Auto Block') === 0) {
+            $attack_type = 'temp_block';
+        } elseif ($reason === 'Blacklisted' || $reason === 'Manual Blacklist') {
+            $attack_type = 'ip_blacklist';
+        }
+        
         vietshield_block_request($ip, $reason, $attack_type);
     }
     
@@ -119,35 +128,85 @@ function vietshield_get_ip($trusted_proxies = []) {
  * Block request immediately
  */
 function vietshield_block_request($ip, $reason = 'Blocked by VietShield WAF', $attack_type = '') {
-    // Log to database if threat intelligence (runs before WordPress, so direct DB connection)
-    if ($attack_type === 'threat_intel') {
-        vietshield_log_to_database($ip, $reason, $attack_type);
+    // Log to database and get Block ID (reused if recently blocked)
+    $block_id = vietshield_log_to_database($ip, $reason, $attack_type);
+    
+    // Fallback if logging failed or returned nothing
+    if (empty($block_id)) {
+        $block_id = substr(md5($ip . time()), 0, 12);
     }
+    
+    // Status code
+    $status = 403;
+    // Generic message for visitors, ignoring the internal reason
+    $display_message = 'Sorry, you have been blocked for security reasons.';
+    $accent_color = '#dc2626'; // Red for critical/high
+    $current_time = gmdate('Y-m-d H:i:s');
+    $timezone_label = 'UTC';
     
     // Send 403 response
     http_response_code(403);
     header('Content-Type: text/html; charset=UTF-8');
     
-    $block_id = substr(md5($ip . time()), 0, 12);
-    $timestamp = date('Y-m-d H:i:s');
-    
+    // Beautiful block page inline
     echo '<!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Access Denied</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>' . htmlspecialchars($status) . ' - Request Blocked | VietShield WAF</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #d32f2f; }
-        .block-id { color: #666; font-size: 12px; margin-top: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; color: #e2e8f0; }
+        .container { max-width: 600px; width: 100%; text-align: center; }
+        .shield-icon { width: 120px; height: 120px; margin: 0 auto 30px; position: relative; }
+        .shield-icon svg { width: 100%; height: 100%; filter: drop-shadow(0 0 30px ' . $accent_color . '40); }
+        .status-code { font-size: 72px; font-weight: 800; color: ' . $accent_color . '; text-shadow: 0 0 40px ' . $accent_color . '60; margin-bottom: 10px; }
+        .status-text { font-size: 24px; font-weight: 600; color: #f8fafc; margin-bottom: 30px; }
+        .message-box { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-left: 4px solid ' . $accent_color . '; border-radius: 12px; padding: 25px; margin-bottom: 30px; backdrop-filter: blur(10px); }
+        .message-box p { font-size: 16px; line-height: 1.6; color: #cbd5e1; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
+        .info-item { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 15px; }
+        .info-item .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 5px; }
+        .info-item .value { font-size: 14px; font-family: "Monaco", "Consolas", monospace; color: #94a3b8; }
+        .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .footer p { font-size: 13px; color: #475569; }
+        .footer a { color: #64748b; text-decoration: none; transition: color 0.3s; }
+        .footer a:hover { color: #94a3b8; }
+        @media (max-width: 480px) { .status-code { font-size: 48px; } .status-text { font-size: 18px; } .info-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Access Denied</h1>
-        <p>Your request has been blocked for security reasons.</p>
-        <p class="block-id">Block ID: ' . htmlspecialchars($block_id) . '<br>Time: ' . htmlspecialchars($timestamp) . '</p>
+        <div class="shield-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z" fill="' . $accent_color . '" fill-opacity="0.2" stroke="' . $accent_color . '" stroke-width="1.5"/>
+                <path d="M12 8V12M12 16H12.01" stroke="' . $accent_color . '" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </div>
+        
+        <div class="status-code">' . htmlspecialchars($status) . '</div>
+        <div class="status-text">Access Denied</div>
+        
+        <div class="message-box">
+            <p>' . htmlspecialchars($display_message) . '</p>
+        </div>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="label">Block ID</div>
+                <div class="value">' . htmlspecialchars($block_id) . '</div>
+            </div>
+            <div class="info-item">
+                <div class="label">Time (' . htmlspecialchars($timezone_label) . ')</div>
+                <div class="value">' . htmlspecialchars($current_time) . '</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Protected by <strong><a href="https://vietshield.org" target="_blank" rel="noopener noreferrer">VietShield WAF</a></strong></p>
+        </div>
     </div>
 </body>
 </html>';
@@ -222,7 +281,7 @@ function vietshield_check_ip_binary($ip, $bin_file) {
  * Log threat intelligence block to database
  * This runs before WordPress loads, so we connect directly to database
  */
-function vietshield_log_to_database($ip, $reason, $attack_type) {
+function vietshield_log_to_database($ip, $reason, $attack_type, $block_id = null) {
     // Try to get database config from wp-config.php
     $wp_content_dir = __DIR__;
     $root_dir = dirname($wp_content_dir);
@@ -291,6 +350,39 @@ function vietshield_log_to_database($ip, $reason, $attack_type) {
         // Prepare SQL with escaped table name
         // Prepare SQL with escaped table name
         // Use PHP generated timestamp (UTC) for consistency across environments
+        
+        // Anti-Spam: Check if recently logged (deduplicate)
+        // Only log if NO log exists for this IP and Attack Type in the last 1 HOUR
+        // NOTE: We retrieve the EXISTING block_id to reuse it for the user display
+        $check_sql = "SELECT block_id FROM {$logs_table} WHERE ip = ? AND attack_type = ? AND timestamp > DATE_SUB(?, INTERVAL 1 HOUR) ORDER BY id DESC LIMIT 1";
+        $check_stmt = $mysqli->prepare($check_sql);
+        
+        $existing_block_id = null;
+        
+        if ($check_stmt) {
+             $now_check = gmdate('Y-m-d H:i:s');
+             $check_stmt->bind_param('sss', $ip, $attack_type, $now_check);
+             $check_stmt->execute();
+             $check_stmt->store_result();
+             
+             if ($check_stmt->num_rows > 0) {
+                 $check_stmt->bind_result($existing_block_id);
+                 $check_stmt->fetch();
+             }
+             $check_stmt->close();
+        }
+        
+        // If we found an existing block log, Reuse the ID and Skip inserting
+        if (!empty($existing_block_id)) {
+            $mysqli->close();
+            return $existing_block_id;
+        }
+
+        // If no existing log, generate NEW block_id if not provided
+        if (empty($block_id)) {
+            $block_id = substr(md5($ip . time()), 0, 12);
+        }
+
         $sql = "INSERT INTO `{$logs_table}` 
             (ip, country, request_uri, request_method, user_agent, referer, post_data, 
              action, rule_id, rule_matched, attack_type, severity, block_id, timestamp) 
@@ -301,7 +393,7 @@ function vietshield_log_to_database($ip, $reason, $attack_type) {
         if ($stmt) {
             $rule_matched = $reason;
             $post_data = '';
-            $block_id = substr(md5($ip . time()), 0, 12);
+            // Block ID is already ensured to be set above
             $timestamp = gmdate('Y-m-d H:i:s');
             
             $stmt->bind_param('sssssssssss',
@@ -320,12 +412,55 @@ function vietshield_log_to_database($ip, $reason, $attack_type) {
             
             $stmt->execute();
             $stmt->close();
+            
+            // --- SYNC TO THREATS SHARING QUEUE ---
+            // Early blocks were previously not synced. Fixing this to ensure all blocks are shared.
+            $queue_table = $table_prefix . 'vietshield_threats_queue';
+            $domain = $_SERVER['HTTP_HOST'] ?? '';
+            $now = gmdate('Y-m-d H:i:s');
+            
+            // Check for existing pending queue item
+            $q_check = "SELECT id FROM {$queue_table} WHERE ip = ? AND submitted = 0 LIMIT 1";
+            $q_stmt = $mysqli->prepare($q_check);
+            if ($q_stmt) {
+                $q_stmt->bind_param('s', $ip);
+                $q_stmt->execute();
+                $q_stmt->store_result();
+                
+                if ($q_stmt->num_rows > 0) {
+                    // Update existing
+                    $q_stmt->bind_result($q_id);
+                    $q_stmt->fetch();
+                    $q_stmt->close();
+                    
+                    $q_upd = "UPDATE {$queue_table} SET reason = ?, attack_type = ?, updated_at = ? WHERE id = ?";
+                    $u_stmt = $mysqli->prepare($q_upd);
+                    if ($u_stmt) {
+                        $u_stmt->bind_param('sssi', $reason, $attack_type, $now, $q_id);
+                        $u_stmt->execute();
+                        $u_stmt->close();
+                    }
+                } else {
+                    $q_stmt->close();
+                    // Insert new
+                    $q_ins = "INSERT INTO {$queue_table} (ip, reason, attack_type, severity, domain, created_at, updated_at, submitted) VALUES (?, ?, ?, 'high', ?, ?, ?, 0)";
+                    $i_stmt = $mysqli->prepare($q_ins);
+                    if ($i_stmt) {
+                        $i_stmt->bind_param('ssssss', $ip, $reason, $attack_type, $domain, $now, $now);
+                        $i_stmt->execute();
+                        $i_stmt->close();
+                    }
+                }
+            }
+            // -------------------------------------
         }
         
         $mysqli->close();
+        
+        return $block_id;
     } catch (Exception $e) {
-        // Silently fail - don't break blocking if logging fails
-        return;
+        // Silently fail - but return generated ID if possible
+        return $block_id ?? null;
     }
 }
 

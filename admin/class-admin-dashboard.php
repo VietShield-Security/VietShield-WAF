@@ -1121,7 +1121,9 @@ class VietShield_Admin_Dashboard {
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-ip-manager.php';
         $ip_manager = new VietShield\Firewall\IPManager();
         
-        $ip_manager->remove_ip($ip);
+        // Only remove from blocking lists (blacklist/temporary), avoiding accidental whitelist removal
+        $ip_manager->remove_ip($ip, 'blacklist');
+        $ip_manager->remove_ip($ip, 'temporary');
         
         // Sync early blocker
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-early-blocker.php';

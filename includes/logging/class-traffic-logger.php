@@ -108,6 +108,33 @@ class TrafficLogger {
     }
     
     /**
+     * Get recent block ID for deduplication
+     * 
+     * @param string $ip
+     * @param string $attack_type
+     * @return string|null Block ID or null
+     */
+    public function get_recent_block_id($ip, $attack_type) {
+        global $wpdb;
+        
+        // Check for logs within last hour with same IP and attack type
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
+        $block_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT block_id FROM {$this->table} 
+             WHERE ip = %s 
+             AND attack_type = %s 
+             AND action = 'blocked'
+             AND timestamp > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 HOUR) 
+             ORDER BY id DESC 
+             LIMIT 1",
+            $ip,
+            $attack_type
+        ));
+        
+        return $block_id;
+    }
+    
+    /**
      * Increment total requests counter in stats table
      * This is called for every request, even if not logged
      */

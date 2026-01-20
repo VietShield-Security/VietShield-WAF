@@ -50,7 +50,7 @@ class IPManager {
         
         $results = $wpdb->get_results(
             "SELECT * FROM {$this->table} 
-             WHERE expires_at IS NULL OR expires_at > NOW()",
+             WHERE expires_at IS NULL OR expires_at > UTC_TIMESTAMP()",
             ARRAY_A
         );
         
@@ -277,6 +277,7 @@ class IPManager {
             'list_type' => $list_type,
             'reason' => $reason,
             'expires_at' => $expires_at,
+            'created_at' => gmdate('Y-m-d H:i:s'),
             'created_by' => get_current_user_id(),
         ]);
         
@@ -347,7 +348,7 @@ class IPManager {
         return $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$this->table} 
              WHERE list_type = %s 
-             AND (expires_at IS NULL OR expires_at > NOW())
+             AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())
              ORDER BY created_at DESC",
             $list_type
         ), ARRAY_A);
@@ -380,7 +381,7 @@ class IPManager {
         
         $deleted = $wpdb->query(
             "DELETE FROM {$this->table} 
-             WHERE expires_at IS NOT NULL AND expires_at < NOW()"
+             WHERE expires_at IS NOT NULL AND expires_at < UTC_TIMESTAMP()"
         );
         
         // Clear cache

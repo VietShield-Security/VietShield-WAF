@@ -194,16 +194,20 @@ jQuery(document).ready(function($) {
                  actionButtons += '<button class="button button-small block-ip-btn" data-ip="' + safeIp + '" title="<?php esc_attr_e('Block IP', 'vietshield-waf'); ?>">Block</button>';
             }
 
+            var displayType = safeAttackType.toUpperCase();
+            // Removed hack that forced MANUAL_BLOCK to TEMP_BLOCK
+            // if (displayType === 'MANUAL_BLOCK') { ... }
+
             var row = '<tr class="action-' + safeAction + '">' +
                 '<td class="col-time">' + formatTime(log.timestamp) + '</td>' +
-                '<td class="col-ip"><code>' + safeIp + '</code>' + (log.ip_status_label ? ' <span class="ip-label ' + log.ip_status + '">' + log.ip_status_label + '</span>' : '') + '</td>' +
+                '<td class="col-ip"><code>' + safeIp + '</code></td>' +
                 '<td class="col-country">' + (countryCode ? '<span class="country-flag" title="' + countryCode + '">' + countryCode + '</span>' : '-') + '</td>' +
                 '<td class="col-asn-number">' + (asNumber ? '<code>' + asNumber + '</code>' : '-') + '</td>' +
                 '<td class="col-asn-name">' + (asName ? truncate(asName, 30) : '-') + '</td>' +
                 '<td class="col-method"><span class="method-' + safeMethod.toLowerCase() + '">' + safeMethod + '</span></td>' +
                 '<td class="col-uri" title="' + escapeHtml(log.request_uri || '') + '">' + truncate(log.request_uri, 50) + '</td>' +
                 '<td class="col-action"><span class="action-badge ' + safeAction + '">' + safeAction + '</span></td>' +
-                '<td class="col-type">' + (safeAttackType ? '<span class="attack-type type-' + safeAttackType + '">' + safeAttackType.toUpperCase() + '</span>' : '-') + '</td>' +
+                '<td class="col-type">' + (safeAttackType ? '<span class="attack-type type-' + safeAttackType + '">' + displayType + '</span>' : '-') + '</td>' +
                 '<td class="col-block-id">' + (safeBlockId ? '<code>' + safeBlockId + '</code>' : '-') + '</td>' +
                 '<td class="col-actions">' + actionButtons + '</td>' +
             '</tr>';

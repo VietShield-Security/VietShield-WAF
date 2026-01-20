@@ -116,7 +116,7 @@ class EarlyBlocker {
             "SELECT ip_address, ip_range, reason, list_type 
              FROM {$ip_table} 
              WHERE list_type IN ('blacklist', 'temporary') 
-             AND (expires_at IS NULL OR expires_at > NOW())",
+             AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())",
             ARRAY_A
         );
         
@@ -225,15 +225,22 @@ class EarlyBlocker {
             }
         }
         
-        // Collect all exact IPs for binary storage
+        // Collect all exact IPs for binary storage (IPv4 only)
         $binary_ips = [];
+        $ipv6_ips = [];
+        
         foreach ($blocked_ips['exact'] as $ip => $reason) {
-            $binary_ips[] = ip2long($ip);
+            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $binary_ips[] = ip2long($ip);
+            } else {
+                // Keep IPv6 in the PHP array
+                $ipv6_ips[$ip] = $reason;
+            }
         }
         
         // Remove exact IPs from PHP array to save memory/size in the config file
-        // We only keep ranges and trusted proxies in the PHP file
-        $blocked_ips['exact'] = []; 
+        // BUT keep IPv6 IPs as they are not supported in binary file yet
+        $blocked_ips['exact'] = $ipv6_ips; 
 
         // Sort IPs for binary search
         sort($binary_ips, SORT_NUMERIC);

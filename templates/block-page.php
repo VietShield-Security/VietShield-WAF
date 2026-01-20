@@ -120,24 +120,25 @@ if (!defined('ABSPATH')) {
             color: #94a3b8;
         }
         
-        .action-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: linear-gradient(135deg, <?php echo esc_attr($accent_color); ?>dd, <?php echo esc_attr($accent_color); ?>);
-            color: white;
-            text-decoration: none;
-            padding: 14px 28px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 15px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px <?php echo esc_attr($accent_color); ?>40;
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px <?php echo esc_attr($accent_color); ?>50;
+        .footer p {
+            font-size: 13px;
+            color: #475569;
+        }
+        
+        .footer a {
+            color: #64748b;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer a:hover {
+            color: #94a3b8;
         }
         
         .footer {
@@ -183,7 +184,7 @@ if (!defined('ABSPATH')) {
         <div class="status-text">Access Denied</div>
         
         <div class="message-box">
-            <p><?php echo esc_html($message); ?></p>
+            <p><?php esc_html_e('Sorry, you have been blocked for security reasons.', 'vietshield-waf'); ?></p>
         </div>
         
         <div class="info-grid">
@@ -197,16 +198,8 @@ if (!defined('ABSPATH')) {
             </div>
         </div>
         
-        <a href="/" class="action-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                <polyline points="9,22 9,12 15,12 15,22"/>
-            </svg>
-            Go to Homepage
-        </a>
-        
         <div class="footer">
-            <p>Protected by <strong>VietShield WAF</strong></p>
+            <p>Protected by <strong><a href="https://vietshield.org" target="_blank" rel="noopener noreferrer">VietShield WAF</a></strong></p>
         </div>
     </div>
     

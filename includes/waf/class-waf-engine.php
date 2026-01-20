@@ -186,7 +186,13 @@ class WAFEngine {
         
         // Check blacklist
         if ($ip_manager->is_blacklisted($ip)) {
-            $this->block_request('ip_blacklisted', 'IP is blacklisted', 'high');
+            $info = $ip_manager->get_ip_info($ip);
+            if ($info && isset($info['list_type']) && $info['list_type'] === 'temporary') {
+                 $attack_type = 'temp_block';
+            } else {
+                 $attack_type = 'ip_blacklist';
+            }
+            $this->block_request('ip_blacklisted', 'IP is blacklisted', 'high', 'blocked', $attack_type);
             return;
         }
         
@@ -295,11 +301,20 @@ class WAFEngine {
      * Block the request
      */
     private function block_request($rule_id, $matched, $severity, $action = 'blocked', $attack_type = '', $country = null) {
-        // Generate Block ID
-        $block_id = substr(md5(time() . microtime(true) . ($this->request_data['ip'] ?? '') . $rule_id), 0, 12);
+        // Generate Block ID or reuse existing one
+        $ip = $this->request_data['ip'] ?? '';
         
-        // Log the blocked request with Block ID (do this first to ensure it's saved)
-        $log_id = $this->log_request($action, $rule_id, $attack_type, $severity, $matched, $country, $block_id);
+        // Check if recently blocked with same attack type (Deduplication)
+        $existing_block_id = $this->logger->get_recent_block_id($ip, $attack_type);
+        
+        if ($existing_block_id) {
+            $block_id = $existing_block_id;
+            // Skip logging to avoid spamming the DB with duplicate block logs
+        } else {
+            $block_id = substr(md5(time() . microtime(true) . $ip . $rule_id), 0, 12);
+            // Log the blocked request with Block ID
+            $this->log_request($action, $rule_id, $attack_type, $severity, $matched, $country, $block_id);
+        }
         
         // Queue IP for Threats Sharing (always enabled, cannot be disabled)
         $this->queue_threat_for_sharing($this->request_data['ip'] ?? '', $matched, $attack_type, $severity);
