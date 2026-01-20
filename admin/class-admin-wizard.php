@@ -283,6 +283,17 @@ class VietShield_Admin_Wizard {
             $options['block_rce'] = true;
             $options['block_lfi'] = true;
             $options['block_bad_bots'] = true;
+            $options['block_bad_bots'] = true;
+        }
+        
+        // Auto-detect Cloudflare usage
+        // If the site is behind Cloudflare, these headers should be present
+        if (!empty($_SERVER['HTTP_CF_RAY']) || !empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+            $options['cloudflare_enabled'] = true;
+            // Also enable trusted proxies if not already set (will be populated by sync)
+            if (empty($options['trusted_proxies'])) {
+                $options['trusted_proxies'] = []; 
+            }
         }
         
         // Early blocking settings - enable if protecting mode

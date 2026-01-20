@@ -682,13 +682,31 @@ class VietShield_Activator {
     private static function create_early_blocker_files() {
         $blocker_file = WP_CONTENT_DIR . '/vietshield-blocker.php';
         $blocked_ips_file = WP_CONTENT_DIR . '/vietshield-blocked-ips.php';
+        $template_file = VIETSHIELD_PLUGIN_DIR . 'templates/early-blocker.php.tpl';
         
-        // Create blocker file if not exists - copy from template
-        if (!file_exists($blocker_file)) {
-            $template_file = VIETSHIELD_PLUGIN_DIR . 'templates/early-blocker.php.tpl';
-            if (file_exists($template_file)) {
+        // Always regenerate blocker file from template to ensure latest version with logging
+        // This ensures threat intelligence logging is always available
+        if (file_exists($template_file)) {
+            $template_content = file_get_contents($template_file);
+            // Check if blocker file needs update (missing logging functions)
+            $needs_update = false;
+            
+            if (!file_exists($blocker_file)) {
+                $needs_update = true;
+            } else {
+                $blocker_content = file_get_contents($blocker_file);
+                // Check if blocker has the new logging function
+                if (strpos($template_content, 'vietshield_log_to_database') !== false && 
+                    strpos($blocker_content, 'vietshield_log_to_database') === false) {
+                    $needs_update = true;
+                }
+            }
+            
+            if ($needs_update) {
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-                file_put_contents($blocker_file, file_get_contents($template_file));
+                file_put_contents($blocker_file, $template_content, LOCK_EX);
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
+                @chmod($blocker_file, 0644);
             }
         }
         

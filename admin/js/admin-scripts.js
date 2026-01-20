@@ -1040,7 +1040,7 @@
     function updateRceWhitelistSection() {
         var rceEnabled = $('input[name="vietshield_options[block_rce]"]').is(':checked');
         var $rceSection = $('#rce-whitelist-section');
-        
+
         if (rceEnabled) {
             $rceSection.slideDown(200);
         } else {
@@ -1121,8 +1121,49 @@
     });
 
     // Toggle RCE whitelist section when RCE checkbox changes
-    $(document).on('change', 'input[name="vietshield_options[block_rce]"]', function() {
+    $(document).on('change', 'input[name="vietshield_options[block_rce]"]', function () {
         updateRceWhitelistSection();
+    });
+
+    // IP Whitelist Sync
+    $('#ip-whitelist-sync-btn').on('click', function (e) {
+        e.preventDefault();
+
+        var $btn = $(this);
+        var originalHtml = $btn.html();
+        var $msg = $('#ip-whitelist-message');
+
+        $btn.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Syncing...');
+        $msg.text('').removeClass('success error');
+
+        $.post(vietshieldAdmin.ajaxUrl, {
+            action: 'vietshield_sync_ip_whitelist',
+            nonce: vietshieldAdmin.nonce
+        }, function (response) {
+            $btn.prop('disabled', false).html(originalHtml);
+
+            if (response.success) {
+                $msg.text(response.data.message || 'Synced successfully.').addClass('success').css('color', 'green');
+                showNotice('success', response.data.message || 'IP whitelist synced successfully.');
+
+                // If we have stats, update them if elements exist
+                if (response.data.results && response.data.results.cloudflare) {
+                    // Update UI if we had specific cloudflare counter, but for now just reload
+                }
+
+                // Reload page after short delay to show updated data
+                setTimeout(function () {
+                    location.reload();
+                }, 1000);
+            } else {
+                $msg.text(response.data || 'Failed to sync.').addClass('error').css('color', 'red');
+                showNotice('error', response.data || 'Failed to sync.');
+            }
+        }).fail(function () {
+            $btn.prop('disabled', false).html(originalHtml);
+            $msg.text('Request failed.').addClass('error').css('color', 'red');
+            showNotice('error', 'Request failed. Please try again.');
+        });
     });
 
 })(jQuery);

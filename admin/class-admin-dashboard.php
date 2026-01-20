@@ -160,14 +160,14 @@ class VietShield_Admin_Dashboard {
             'vietshield-admin',
             VIETSHIELD_PLUGIN_URL . 'admin/css/admin-style.css',
             [],
-            $css_version
+            time() // Force refresh
         );
         
         wp_enqueue_script(
             'vietshield-admin',
             VIETSHIELD_PLUGIN_URL . 'admin/js/admin-scripts.js',
             ['jquery'],
-            $js_version,
+            time(), // Force refresh for development/debugging
             true
         );
         
@@ -226,7 +226,8 @@ class VietShield_Admin_Dashboard {
             'block_author_scan', 'whitelist_admins', 'email_alerts',
             'country_blocking_enabled', 'block_unknown_countries',
             'login_security_enabled', 'login_notifications_enabled', 'login_honeypot_enabled',
-            'file_scanner_enabled', 'malware_scanner_enabled', 'threat_intel_enabled'
+            'file_scanner_enabled', 'malware_scanner_enabled', 'threat_intel_enabled',
+            'cloudflare_enabled'
         ];
         
         foreach ($bool_options as $opt) {
@@ -289,7 +290,8 @@ class VietShield_Admin_Dashboard {
         
         // Array options
         if (!empty($input['whitelisted_ips'])) {
-            $ips = array_map('trim', explode("\n", $input['whitelisted_ips']));
+            $ips = is_array($input['whitelisted_ips']) ? $input['whitelisted_ips'] : explode("\n", $input['whitelisted_ips']);
+            $ips = array_map('trim', $ips);
             $sanitized['whitelisted_ips'] = array_filter($ips, function($ip) {
                 return filter_var($ip, FILTER_VALIDATE_IP) || preg_match('/^\d+\.\d+\.\d+\.\d+\/\d+$/', $ip);
             });
@@ -298,12 +300,32 @@ class VietShield_Admin_Dashboard {
         }
         
         if (!empty($input['blacklisted_ips'])) {
-            $ips = array_map('trim', explode("\n", $input['blacklisted_ips']));
+            $ips = is_array($input['blacklisted_ips']) ? $input['blacklisted_ips'] : explode("\n", $input['blacklisted_ips']);
+            $ips = array_map('trim', $ips);
             $sanitized['blacklisted_ips'] = array_filter($ips, function($ip) {
                 return filter_var($ip, FILTER_VALIDATE_IP) || preg_match('/^\d+\.\d+\.\d+\.\d+\/\d+$/', $ip);
             });
         } else {
             $sanitized['blacklisted_ips'] = [];
+        }
+        
+        if (!empty($input['trusted_proxies'])) {
+            $ips = is_array($input['trusted_proxies']) ? $input['trusted_proxies'] : explode("\n", $input['trusted_proxies']);
+            $ips = array_map('trim', $ips);
+            $sanitized['trusted_proxies'] = array_filter($ips, function($ip) {
+                // Allow IPs and CIDRs (IPv4 and IPv6)
+                if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                    return true;
+                }
+                // Check CIDR
+                if (strpos($ip, '/') !== false) {
+                    $parts = explode('/', $ip);
+                    return count($parts) === 2 && filter_var($parts[0], FILTER_VALIDATE_IP) && is_numeric($parts[1]);
+                }
+                return false;
+            });
+        } else {
+            $sanitized['trusted_proxies'] = [];
         }
         
         // Country blocking options

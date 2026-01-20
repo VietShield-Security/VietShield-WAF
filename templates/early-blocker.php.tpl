@@ -9,54 +9,120 @@
  */
 
 // This file is loaded BEFORE WordPress via auto_prepend_file
-// Get client IP
-if (true) {
-    $ip = '';
-    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-        $ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_REAL_IP'])) {
-        $ip = $_SERVER['HTTP_X_REAL_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $ip = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
-        $ip = trim($ip);
-    } else {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+// 1. Load configuration first (to get trusted proxies)
+$block_file = __DIR__ . '/vietshield-blocked-ips.php';
+$bin_file = __DIR__ . '/vietshield-blocked-ips.bin';
+$blocked_ips = [];
+if (file_exists($block_file)) {
+    $blocked_ips = include $block_file;
+}
+
+// 2. Get client IP securely
+$ip = vietshield_get_ip($blocked_ips['trusted_proxies'] ?? []);
+
+// 3. Validate IP
+if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+    return; // Invalid IP, let WordPress handle it
+}
+
+// 4. Check against block list
+if (is_array($blocked_ips) && !empty($blocked_ips)) {
+    // Check exact IP match (Legacy/Manual Blacklist from Config)
+    if (isset($blocked_ips['exact'][$ip])) {
+        $reason = $blocked_ips['exact'][$ip];
+        // Determine attack type from reason
+        $attack_type = ($reason === 'Threat Intelligence') ? 'threat_intelligence' : '';
+        vietshield_block_request($ip, $reason, $attack_type);
     }
     
-    // Validate IP
-    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-        return; // Invalid IP, let WordPress handle it
+    // Check Binary File (High Performance Threat Intelligence)
+    if (file_exists($bin_file)) {
+        if (vietshield_check_ip_binary($ip, $bin_file)) {
+            vietshield_block_request($ip, 'Threat Intelligence', 'threat_intelligence');
+        }
     }
     
-    // Load blocked IPs list
-    $block_file = __DIR__ . '/vietshield-blocked-ips.php';
-    if (file_exists($block_file)) {
-        $blocked_ips = include $block_file;
-        
-        if (is_array($blocked_ips) && !empty($blocked_ips)) {
-            // Check exact IP match
-            if (isset($blocked_ips['exact'][$ip])) {
-                vietshield_block_request($ip, $blocked_ips['exact'][$ip]);
-            }
-            
-            // Check CIDR ranges
-            if (!empty($blocked_ips['ranges'])) {
-                foreach ($blocked_ips['ranges'] as $range => $reason) {
-                    if (vietshield_ip_in_range($ip, $range)) {
-                        vietshield_block_request($ip, $reason);
-                    }
-                }
+    // Check CIDR ranges
+    if (!empty($blocked_ips['ranges'])) {
+        foreach ($blocked_ips['ranges'] as $range => $reason) {
+            if (vietshield_ip_in_range($ip, $range)) {
+                $attack_type = ($reason === 'Threat Intelligence') ? 'threat_intelligence' : '';
+                vietshield_block_request($ip, $reason, $attack_type);
             }
         }
     }
 }
 
 /**
+ * Get client IP securely
+ * 
+ * @param array $trusted_proxies List of trusted proxy IPs/CIDRs
+ * @return string Client IP
+ */
+function vietshield_get_ip($trusted_proxies = []) {
+    $remote_addr = $_SERVER['REMOTE_ADDR'] ?? '';
+    
+    // If no trusted proxies configured, fallback to REMOTE_ADDR (secure default)
+    // or very basic Cloudflare check if we want to be nice to non-configured setups
+    // But secure default is usually best.
+    
+    // Check if REMOTE_ADDR is a trusted proxy
+    $is_trusted = false;
+    
+    // Always trust localhost/private loopback for testing
+    if ($remote_addr === '127.0.0.1' || $remote_addr === '::1') {
+        $is_trusted = true;
+    }
+    
+    // Check against configured trusted proxies
+    if (!$is_trusted && !empty($trusted_proxies)) {
+        foreach ($trusted_proxies as $proxy) {
+            if (vietshield_ip_in_range($remote_addr, $proxy)) {
+                $is_trusted = true;
+                break;
+            }
+        }
+    }
+    
+    // If not trusted, return REMOTE_ADDR
+    if (!$is_trusted) {
+        return $remote_addr;
+    }
+    
+    // If trusted, check headers in order
+    // 1. Cloudflare
+    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        // Extra security: Only trust CF header if REMOTE_ADDR is actually Cloudflare
+        // For now, we assume if user added proxy to trusted list, they trust it.
+        return $_SERVER['HTTP_CF_CONNECTING_IP'];
+    }
+    
+    // 2. X-Real-IP (Nginx)
+    if (!empty($_SERVER['HTTP_X_REAL_IP'])) {
+        return $_SERVER['HTTP_X_REAL_IP'];
+    }
+    
+    // 3. X-Forwarded-For
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $ip = trim($ips[0]);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
+        }
+    }
+    
+    return $remote_addr;
+}
+
+/**
  * Block request immediately
  */
-function vietshield_block_request($ip, $reason = 'Blocked by VietShield WAF') {
-    // Log to file for debugging (optional)
-    // error_log(sprintf('VietShield: Blocked IP %s - %s', $ip, $reason));
+function vietshield_block_request($ip, $reason = 'Blocked by VietShield WAF', $attack_type = '') {
+    // Log to database if threat intelligence (runs before WordPress, so direct DB connection)
+    if ($attack_type === 'threat_intel') {
+        vietshield_log_to_database($ip, $reason, $attack_type);
+    }
     
     // Send 403 response
     http_response_code(403);
@@ -90,6 +156,224 @@ function vietshield_block_request($ip, $reason = 'Blocked by VietShield WAF') {
 }
 
 /**
+ * Check IP against binary blocklist using Binary Search
+ * 
+ * @param string $ip Client IP
+ * @param string $bin_file Path to binary file
+ * @return bool True if blocked
+ */
+function vietshield_check_ip_binary($ip, $bin_file) {
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return false; // Binary list only supports IPv4 for now
+    }
+    
+    $ip_long = ip2long($ip);
+    if ($ip_long === false) {
+        return false;
+    }
+    
+    $fp = @fopen($bin_file, 'rb');
+    if (!$fp) {
+        return false;
+    }
+    
+    // Read count (first 4 bytes)
+    $header = fread($fp, 4);
+    if (strlen($header) < 4) {
+        fclose($fp);
+        return false;
+    }
+    
+    $count = unpack('N', $header)[1];
+    
+    $low = 0;
+    $high = $count - 1;
+    
+    while ($low <= $high) {
+        $mid = floor(($low + $high) / 2);
+        
+        // Seek to position: 4 bytes headers + (mid * 4 bytes per IP)
+        fseek($fp, 4 + ($mid * 4));
+        
+        $data = fread($fp, 4);
+        if (strlen($data) < 4) {
+            break;
+        }
+        
+        $stored_ip = unpack('N', $data)[1];
+        
+        if ($stored_ip == $ip_long) {
+            fclose($fp);
+            return true; // Found
+        }
+        
+        if ($stored_ip < $ip_long) {
+            $low = $mid + 1;
+        } else {
+            $high = $mid - 1;
+        }
+    }
+    
+    fclose($fp);
+    return false;
+}
+
+/**
+ * Log threat intelligence block to database
+ * This runs before WordPress loads, so we connect directly to database
+ */
+function vietshield_log_to_database($ip, $reason, $attack_type) {
+    // Try to get database config from wp-config.php
+    $wp_content_dir = __DIR__;
+    $root_dir = dirname($wp_content_dir);
+    
+    // Standard location
+    $wp_config_path = $root_dir . '/wp-config.php';
+    
+    // Fallback: Moved up one level (security best practice)
+    if (!file_exists($wp_config_path)) {
+        $wp_config_path = dirname($root_dir) . '/wp-config.php';
+    }
+    
+    if (!file_exists($wp_config_path)) {
+        // Log error for debugging
+        error_log("VietShield Early Blocker: Could not locate wp-config.php at $wp_config_path");
+        return; // Can't log without config
+    }
+    
+    // Parse wp-config.php to get DB credentials
+    $db_config = vietshield_parse_wp_config($wp_config_path);
+    if (empty($db_config)) {
+        return; // Failed to parse config
+    }
+    
+    // Connect to database
+    try {
+        // Parse DB_HOST (may contain port like localhost:3306)
+        $db_host = $db_config['DB_HOST'];
+        $db_port = 3306; // Default MySQL port
+        
+        if (strpos($db_host, ':') !== false) {
+            list($db_host, $db_port) = explode(':', $db_host, 2);
+            $db_port = (int) $db_port;
+        }
+        
+        // Handle socket connection (localhost:/path/to/socket)
+        if (strpos($db_config['DB_HOST'], ':') === 0) {
+            $db_host = 'localhost';
+            $db_socket = substr($db_config['DB_HOST'], 1);
+            $mysqli = new mysqli($db_host, $db_config['DB_USER'], $db_config['DB_PASSWORD'], $db_config['DB_NAME'], null, $db_socket);
+        } else {
+            $mysqli = new mysqli($db_host, $db_config['DB_USER'], $db_config['DB_PASSWORD'], $db_config['DB_NAME'], $db_port);
+        }
+        
+        if ($mysqli->connect_error) {
+            return; // Connection failed, silently fail
+        }
+        
+        // Get table prefix and validate (only alphanumeric and underscore)
+        $table_prefix = $db_config['table_prefix'] ?? 'wp_';
+        $table_prefix = preg_replace('/[^a-zA-Z0-9_]/', '', $table_prefix); // Sanitize
+        $logs_table = $table_prefix . 'vietshield_logs';
+        
+        // Escape table name (only alphanumeric, underscore allowed)
+        $logs_table = preg_replace('/[^a-zA-Z0-9_]/', '', $logs_table);
+        
+        // Prepare request data
+        $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+        $request_method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $referer = $_SERVER['HTTP_REFERER'] ?? '';
+        
+        // Get country if available (try to get from request or use empty)
+        $country = '';
+        
+        // Prepare SQL with escaped table name
+        // Prepare SQL with escaped table name
+        // Use PHP generated timestamp (UTC) for consistency across environments
+        $sql = "INSERT INTO `{$logs_table}` 
+            (ip, country, request_uri, request_method, user_agent, referer, post_data, 
+             action, rule_id, rule_matched, attack_type, severity, block_id, timestamp) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'blocked', 'threat_intelligence', ?, ?, 'critical', ?, ?)";
+        
+        $stmt = $mysqli->prepare($sql);
+        
+        if ($stmt) {
+            $rule_matched = $reason;
+            $post_data = '';
+            $block_id = substr(md5($ip . time()), 0, 12);
+            $timestamp = gmdate('Y-m-d H:i:s');
+            
+            $stmt->bind_param('sssssssssss',
+                $ip,
+                $country,
+                $request_uri,
+                $request_method,
+                $user_agent,
+                $referer,
+                $post_data,
+                $rule_matched,
+                $attack_type,
+                $block_id,
+                $timestamp
+            );
+            
+            $stmt->execute();
+            $stmt->close();
+        }
+        
+        $mysqli->close();
+    } catch (Exception $e) {
+        // Silently fail - don't break blocking if logging fails
+        return;
+    }
+}
+
+/**
+ * Parse wp-config.php to extract database credentials
+ */
+function vietshield_parse_wp_config($config_path) {
+    if (!file_exists($config_path)) {
+        return null;
+    }
+    
+    $config_content = file_get_contents($config_path);
+    $config = [];
+    
+    // Extract DB_NAME
+    if (preg_match("/define\s*\(\s*['\"]DB_NAME['\"]\s*,\s*['\"](.+?)['\"]\s*\)/", $config_content, $matches)) {
+        $config['DB_NAME'] = $matches[1];
+    }
+    
+    // Extract DB_USER
+    if (preg_match("/define\s*\(\s*['\"]DB_USER['\"]\s*,\s*['\"](.+?)['\"]\s*\)/", $config_content, $matches)) {
+        $config['DB_USER'] = $matches[1];
+    }
+    
+    // Extract DB_PASSWORD
+    if (preg_match("/define\s*\(\s*['\"]DB_PASSWORD['\"]\s*,\s*['\"](.+?)['\"]\s*\)/", $config_content, $matches)) {
+        $config['DB_PASSWORD'] = $matches[1];
+    }
+    
+    // Extract DB_HOST
+    if (preg_match("/define\s*\(\s*['\"]DB_HOST['\"]\s*,\s*['\"](.+?)['\"]\s*\)/", $config_content, $matches)) {
+        $config['DB_HOST'] = $matches[1];
+    }
+    
+    // Extract table_prefix
+    if (preg_match("/\\\$table_prefix\s*=\s*['\"](.+?)['\"]/", $config_content, $matches)) {
+        $config['table_prefix'] = $matches[1];
+    }
+    
+    // Validate we have all required fields
+    if (empty($config['DB_NAME']) || empty($config['DB_USER']) || empty($config['DB_HOST'])) {
+        return null;
+    }
+    
+    return $config;
+}
+
+/**
  * Check if IP is in CIDR range
  */
 function vietshield_ip_in_range($ip, $range) {
@@ -113,7 +397,7 @@ function vietshield_ip_in_range($ip, $range) {
         // For IPv6, we'll do a simple prefix match
         $ip_hex = bin2hex(inet_pton($ip));
         $subnet_hex = bin2hex(inet_pton($subnet));
-        $prefix_len = (int) $bits / 4; // Each hex char is 4 bits
+        $prefix_len = (int) ($bits / 4); // Each hex char is 4 bits
         return substr($ip_hex, 0, $prefix_len) === substr($subnet_hex, 0, $prefix_len);
     }
     

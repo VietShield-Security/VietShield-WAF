@@ -244,7 +244,7 @@ class WAFEngine {
                     'limit' => $rate_result['limit'] ?? 0,
                     'window' => $rate_result['window'] ?? 60,
                 ]);
-                $this->block_request('rate_limited', $rate_info, 'medium', 'rate_limited');
+                $this->block_request('rate_limited', $rate_info, 'medium', 'blocked', 'rate_limit');
                 return;
             }
         }

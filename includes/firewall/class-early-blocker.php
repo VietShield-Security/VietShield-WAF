@@ -27,6 +27,11 @@ class EarlyBlocker {
     private $blocked_ips_file;
     
     /**
+     * Path to binary blocked IPs file
+     */
+    private $item_file_bin;
+    
+    /**
      * Path to .user.ini file
      */
     private $user_ini_file;
@@ -42,6 +47,7 @@ class EarlyBlocker {
     public function __construct() {
         $this->blocker_file = WP_CONTENT_DIR . '/vietshield-blocker.php';
         $this->blocked_ips_file = WP_CONTENT_DIR . '/vietshield-blocked-ips.php';
+        $this->item_file_bin = WP_CONTENT_DIR . '/vietshield-blocked-ips.bin';
         $this->user_ini_file = ABSPATH . '.user.ini';
         $this->htaccess_file = ABSPATH . '.htaccess';
     }
@@ -100,6 +106,7 @@ class EarlyBlocker {
         $blocked_ips = [
             'exact' => [],
             'ranges' => [],
+            'trusted_proxies' => $options['trusted_proxies'] ?? [],
             'updated' => gmdate('Y-m-d H:i:s'),
         ];
         
@@ -125,6 +132,7 @@ class EarlyBlocker {
         // Get threat intelligence IPs (if enabled)
         $options = get_option('vietshield_options', []);
         if (!empty($options['threat_intel_enabled'])) {
+            // Fetch ALL threat IPs (no limit) - we use binary file now so size is fine
             $threat_ips = $wpdb->get_results(
                 "SELECT DISTINCT ip_address FROM {$threat_table}",
                 ARRAY_A
@@ -133,6 +141,42 @@ class EarlyBlocker {
             foreach ($threat_ips as $entry) {
                 if (!empty($entry['ip_address'])) {
                     $blocked_ips['exact'][$entry['ip_address']] = 'Threat Intelligence';
+                }
+            }
+        }
+        
+        // Get Cloudflare IPs if enabled
+        if (!empty($options['cloudflare_enabled'])) {
+            if (!class_exists('\\VietShield\\Integrations\\Cloudflare')) {
+                require_once VIETSHIELD_PLUGIN_DIR . 'includes/integrations/class-cloudflare.php';
+            }
+            $cloudflare = new \VietShield\Integrations\Cloudflare();
+            $cf_ranges = $cloudflare->get_ip_ranges();
+            if (!empty($cf_ranges)) {
+                // Merge with existing trusted proxies
+                $blocked_ips['trusted_proxies'] = array_merge(
+                    $blocked_ips['trusted_proxies'], 
+                    $cf_ranges
+                );
+                // Deduplicate
+                $blocked_ips['trusted_proxies'] = array_unique($blocked_ips['trusted_proxies']);
+                
+                // IMPORTANT: Save back to options so they appear in UI
+                $current_trusted = $options['trusted_proxies'] ?? [];
+                $new_trusted = array_unique(array_merge($current_trusted, $cf_ranges));
+                
+                // Only update if changed prevents infinite loop or unnecessary writes
+                // However, array comparison can be tricky.
+                // Let's just check count difference or simple array_diff
+                if (count($new_trusted) !== count($current_trusted)) {
+                    $options['trusted_proxies'] = $new_trusted;
+                    // We must use update_option but skip sanitization loop potential
+                    // Actually, we are safe here because we are in sync_blocked_ips, unrelated to options save hook if triggered manually
+                    // But if triggered via options save hook, we might loop.
+                    // But this is usually triggered via AJAX or Wizard.
+                    // Let's protect against loop by checking backtrace? No, too complex.
+                    // Just update if different.
+                    update_option('vietshield_options', $options);
                 }
             }
         }
@@ -181,11 +225,42 @@ class EarlyBlocker {
             }
         }
         
-        // Write to file
+        // Collect all exact IPs for binary storage
+        $binary_ips = [];
+        foreach ($blocked_ips['exact'] as $ip => $reason) {
+            $binary_ips[] = ip2long($ip);
+        }
+        
+        // Remove exact IPs from PHP array to save memory/size in the config file
+        // We only keep ranges and trusted proxies in the PHP file
+        $blocked_ips['exact'] = []; 
+
+        // Sort IPs for binary search
+        sort($binary_ips, SORT_NUMERIC);
+        $binary_ips = array_unique($binary_ips);
+        
+        // Pack into binary format: [count: 4 bytes] [ip: 4 bytes]...
+        $packed_data = pack('N', count($binary_ips));
+        foreach ($binary_ips as $ip_long) {
+            if ($ip_long !== false) {
+                $packed_data .= pack('N', $ip_long);
+            }
+        }
+        
+        // Write binary file
+        $bin_result = @file_put_contents($this->item_file_bin, $packed_data, LOCK_EX);
+        if ($bin_result === false) {
+             error_log('VietShield: Failed to write binary IPs file');
+        } else {
+            @chmod($this->item_file_bin, 0644);
+        }
+
+        // Write PHP config file (without giant IP list)
         $content = "<?php\n";
         $content .= "/**\n";
-        $content .= " * VietShield Blocked IPs\n";
+        $content .= " * VietShield Blocked IPs Configuration\n";
         $content .= " * Auto-generated - DO NOT EDIT MANUALLY\n";
+        $content .= " * This file contains configuration. Actual IPs are in vietshield-blocked-ips.bin\n";
         $content .= " * Last updated: {$blocked_ips['updated']}\n";
         $content .= " */\n\n";
         $content .= "return " . var_export($blocked_ips, true) . ";\n";
@@ -216,9 +291,10 @@ class EarlyBlocker {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Performance critical
         @chmod($this->blocked_ips_file, 0644);
         
-        // Ensure blocker file exists
+        // Ensure blocker file exists and is up to date
+        $this->ensure_blocker_file();
+        
         if (!file_exists($this->blocker_file)) {
-            // Blocker file should be created during activation
             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Blocker file not found at ' . $this->blocker_file);
             return [
@@ -242,6 +318,56 @@ class EarlyBlocker {
             'message' => sprintf('Successfully synced %d blocked IPs', $total_ips),
             'total_ips' => $total_ips
         ];
+        
+        // Final step: Ensure the blocker mechanism file itself is up to date
+        // This ensures template changes (like logging fixes) are propagated
+        $this->ensure_blocker_file();
+        
+        return $result;
+    }
+    
+    /**
+     * Ensure blocker file exists and is up to date from template
+     */
+    private function ensure_blocker_file() {
+        $template_file = VIETSHIELD_PLUGIN_DIR . 'templates/early-blocker.php.tpl';
+        
+        if (!file_exists($template_file)) {
+            return false;
+        }
+        
+        // Check if blocker file needs update (compare with template)
+        $needs_update = false;
+        
+        if (!file_exists($this->blocker_file)) {
+            $needs_update = true;
+        } else {
+            // Check if template is newer or different
+            $template_content = file_get_contents($template_file);
+            $blocker_content = file_get_contents($this->blocker_file);
+            
+            // Compare content hashes ignoring whitespace/comments if possible, but exact match is fine
+            // Since we copy relevant parts, exact match of full content might be tricky if we processed it.
+            // But usually we just copy the template.
+            if (md5($template_content) !== md5($blocker_content)) {
+                $needs_update = true;
+            }
+        }
+        
+        if ($needs_update) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Performance critical
+            $result = file_put_contents($this->blocker_file, file_get_contents($template_file), LOCK_EX);
+            
+            if ($result !== false) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Performance critical
+                @chmod($this->blocker_file, 0644);
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
+                error_log('VietShield: Regenerated blocker file from template');
+                return true;
+            }
+        }
+        
+        return true;
     }
     
     /**

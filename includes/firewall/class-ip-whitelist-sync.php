@@ -36,6 +36,14 @@ class IPWhitelistSync {
             $results['googlebot'] = self::sync_googlebot();
         }
         
+        // Sync Early Blocker / Cloudflare
+        // This handles fetching Cloudflare IPs if enabled and regenerating the blocklist
+        if (!class_exists('\\VietShield\\Firewall\\EarlyBlocker')) {
+            require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-early-blocker.php';
+        }
+        $early_blocker = new \VietShield\Firewall\EarlyBlocker();
+        $results['early_blocker'] = $early_blocker->sync_blocked_ips();
+        
         // Update last sync time
         update_option('vietshield_ip_whitelist_last_sync', time());
         
@@ -160,7 +168,9 @@ class IPWhitelistSync {
      */
     public static function schedule_sync() {
         if (!wp_next_scheduled('vietshield_ip_whitelist_sync')) {
-            wp_schedule_event(time(), 'daily', 'vietshield_ip_whitelist_sync');
+            // Schedule for tomorrow midnight (00:00)
+            $time = strtotime('tomorrow midnight');
+            wp_schedule_event($time, 'daily', 'vietshield_ip_whitelist_sync');
         }
     }
     

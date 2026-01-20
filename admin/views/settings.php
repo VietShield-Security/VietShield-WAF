@@ -605,34 +605,7 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                                 <span class="description"><?php esc_html_e('days to keep logs', 'vietshield-waf'); ?></span>
                             </td>
                         </tr>
-                        <tr>
-                            <th scope="row"><?php esc_html_e('Log Timezone', 'vietshield-waf'); ?></th>
-                            <td>
-                                <?php
-                                require_once VIETSHIELD_PLUGIN_DIR . 'includes/class-vietshield-helpers.php';
-                                $vswaf_timezone_groups = VietShield_Helpers::get_timezone_groups();
-                                $vswaf_current_timezone = $vswaf_options['log_timezone'] ?? get_option('timezone_string') ?: 'UTC';
-                                ?>
-                                <select name="vietshield_options[log_timezone]" class="regular-text">
-                                    <?php foreach ($vswaf_timezone_groups as $vswaf_region => $vswaf_zones): ?>
-                                        <?php if (!empty($vswaf_zones)): ?>
-                                            <optgroup label="<?php echo esc_attr($vswaf_region); ?>">
-                                                <?php foreach ($vswaf_zones as $vswaf_tz => $vswaf_label): ?>
-                                                    <option value="<?php echo esc_attr($vswaf_tz); ?>" 
-                                                            <?php selected($vswaf_current_timezone, $vswaf_tz); ?>>
-                                                        <?php echo esc_html($vswaf_label); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </optgroup>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
-                                </select>
-                                <p class="description">
-                                    <?php esc_html_e('Timezone for log timestamps. Current server time:', 'vietshield-waf'); ?>
-                                    <strong><?php echo esc_html(wp_date('Y-m-d H:i:s T')); ?></strong>
-                                </p>
-                            </td>
-                        </tr>
+
                     </table>
                 </div>
             </div>
@@ -732,6 +705,17 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                                 </p>
                             </td>
                         </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e('Enable Cloudflare Support', 'vietshield-waf'); ?></th>
+                            <td>
+                                <label class="vietshield-switch">
+                                    <input type="checkbox" name="vietshield_options[cloudflare_enabled]" value="1" 
+                                           <?php checked($vswaf_options['cloudflare_enabled'] ?? false); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <p class="description"><?php esc_html_e('Auto-whitelist Cloudflare IP ranges. Enable this if your site is behind Cloudflare.', 'vietshield-waf'); ?></p>
+                            </td>
+                        </tr>
 
                     </table>
                     
@@ -756,6 +740,15 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                                     echo esc_textarea(implode("\n", $vswaf_options['whitelisted_ips'] ?? [])); 
                                 ?></textarea>
                                 <p class="description"><?php esc_html_e('One IP per line. Supports CIDR notation (e.g., 192.168.1.0/24)', 'vietshield-waf'); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e('Trusted Proxies', 'vietshield-waf'); ?></th>
+                            <td>
+                                <textarea name="vietshield_options[trusted_proxies]" rows="5" class="large-text code"><?php 
+                                    echo esc_textarea(implode("\n", $vswaf_options['trusted_proxies'] ?? [])); 
+                                ?></textarea>
+                                <p class="description"><?php esc_html_e('One IP or CIDR per line. These IPs will be trusted to provide the real client IP via X-Forwarded-For headers.', 'vietshield-waf'); ?></p>
                             </td>
                         </tr>
                         <tr>

@@ -24,7 +24,7 @@
     padding-bottom: 20px;
     /* Minimal space for WordPress footer */
     position: relative;
-    z-index: 100001; /* Higher than WordPress admin notices (100000) */
+    z-index: 9970; /* Below Admin Menu (9990) but high enough */
 }
 
 .vietshield-header {
@@ -36,8 +36,9 @@
     background: linear-gradient(135deg, var(--vs-dark) 0%, #334155 100%);
     border-radius: var(--vs-radius);
     color: white;
+    color: white;
     position: relative;
-    z-index: 100002; /* Higher than wrap to ensure header is always on top */
+    z-index: 9980; /* Higher than wrap but below Admin Bar (99999) and Admin Menu (9990) */
 }
 
 .vietshield-logo {
@@ -212,8 +213,9 @@
     box-shadow: var(--vs-shadow);
     border: 1px solid var(--vs-border);
     margin-bottom: 24px;
+    margin-bottom: 24px;
     position: relative;
-    z-index: 100001; /* Same as wrap to ensure cards are above other plugins */
+    z-index: 9975; /* Slightly higher than wrap */
 }
 
 .card-header {
