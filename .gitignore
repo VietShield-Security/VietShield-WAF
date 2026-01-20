@@ -20,3 +20,9 @@ vendor/
 composer.lock
 
 *.zip
+
+# Test/Debug files (should not be in production)
+test-*.php
+debug-*.php
+*test*.php
+*debug*.php
