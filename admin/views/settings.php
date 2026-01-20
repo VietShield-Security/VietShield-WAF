@@ -210,10 +210,31 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                             <td>
                                 <label class="vietshield-switch">
                                     <input type="checkbox" name="vietshield_options[block_rce]" value="1" 
-                                           <?php checked($vswaf_options['block_rce'] ?? true); ?>>
+                                           <?php checked($vswaf_options['block_rce'] ?? false); ?>>
                                     <span class="slider"></span>
                                 </label>
-                                <p class="description"><?php esc_html_e('Block attempts to execute arbitrary code on the server.', 'vietshield-waf'); ?></p>
+                                <p class="description">
+                                    <?php esc_html_e('Block attempts to execute arbitrary code on the server.', 'vietshield-waf'); ?>
+                                    <strong><?php esc_html_e('Note:', 'vietshield-waf'); ?></strong>
+                                    <?php esc_html_e('This is disabled by default to avoid false positives with Google Ads. Enable with caution and configure whitelist patterns below.', 'vietshield-waf'); ?>
+                                </p>
+                                
+                                <div class="dependent-field" style="margin-top: 15px; <?php echo empty($vswaf_options['block_rce']) ? 'display: none;' : ''; ?>" id="rce-whitelist-section">
+                                    <h4 style="margin-top: 0; margin-bottom: 10px;"><?php esc_html_e('RCE Whitelist Patterns', 'vietshield-waf'); ?></h4>
+                                    <p class="description" style="margin-bottom: 10px;"><?php esc_html_e('Add regex patterns to whitelist legitimate traffic (e.g., Google Ads parameters). One pattern per line.', 'vietshield-waf'); ?></p>
+                                    <textarea name="vietshield_options[rce_whitelist_patterns]" 
+                                              rows="8" 
+                                              class="large-text code" 
+                                              placeholder="/gclid=/i&#10;/utm_source=/i&#10;/safeframe\.googlesyndication\.com/i"><?php 
+                                        $rce_patterns = $vswaf_options['rce_whitelist_patterns'] ?? [];
+                                        if (is_array($rce_patterns)) {
+                                            echo esc_textarea(implode("\n", $rce_patterns));
+                                        }
+                                    ?></textarea>
+                                    <p class="description" style="margin-top: 5px;">
+                                        <?php esc_html_e('Default patterns include Google Ads (gclid, utm_*, gad_*), Google SafeFrame, and common tracking parameters.', 'vietshield-waf'); ?>
+                                    </p>
+                                </div>
                             </td>
                         </tr>
                         <tr>

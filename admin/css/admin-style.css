@@ -23,6 +23,8 @@
     margin: 20px 20px 20px 0;
     padding-bottom: 20px;
     /* Minimal space for WordPress footer */
+    position: relative;
+    z-index: 100001; /* Higher than WordPress admin notices (100000) */
 }
 
 .vietshield-header {
@@ -34,6 +36,8 @@
     background: linear-gradient(135deg, var(--vs-dark) 0%, #334155 100%);
     border-radius: var(--vs-radius);
     color: white;
+    position: relative;
+    z-index: 100002; /* Higher than wrap to ensure header is always on top */
 }
 
 .vietshield-logo {
@@ -208,6 +212,8 @@
     box-shadow: var(--vs-shadow);
     border: 1px solid var(--vs-border);
     margin-bottom: 24px;
+    position: relative;
+    z-index: 100001; /* Same as wrap to ensure cards are above other plugins */
 }
 
 .card-header {
@@ -327,6 +333,26 @@
 .attack-type.type-unknown {
     background: #f3f4f6;
     color: #6b7280;
+}
+
+.attack-type.type-brute_force {
+    background: #fecaca;
+    color: #7f1d1d;
+}
+
+.attack-type.type-threat_intel {
+    background: #fed7aa;
+    color: #7c2d12;
+}
+
+.attack-type.type-xmlrpc {
+    background: #fde68a;
+    color: #78350f;
+}
+
+.attack-type.type-ssrf {
+    background: #fce7f3;
+    color: #831843;
 }
 
 /* Severity */
@@ -794,7 +820,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 100000;
+    z-index: 100010; /* Highest z-index to ensure modal is always on top */
     display: flex;
     align-items: center;
     justify-content: center;

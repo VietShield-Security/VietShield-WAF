@@ -531,7 +531,7 @@ class VietShield_Activator {
             'log_blocked_only' => true,
             'block_sqli' => true,
             'block_xss' => true,
-            'block_rce' => true,
+            'block_rce' => false, // Default OFF to avoid false positives with Google Ads
             'block_lfi' => true,
             'block_bad_bots' => true,
             // New Lua WAF rules - Enhanced security features
@@ -575,6 +575,31 @@ class VietShield_Activator {
             'threat_intel_category' => '1d', // Default to 1d category
             'log_retention_days' => 30, // Keep logs for 30 days
             'early_blocking_enabled' => true, // Enable early blocking for performance
+            // RCE Whitelist Patterns (to avoid blocking Google Ads and legitimate traffic)
+            'rce_whitelist_patterns' => [
+                // Google Ads patterns
+                '/gclid=/i',
+                '/gad_source=/i',
+                '/gad_campaignid=/i',
+                '/utm_source=/i',
+                '/utm_medium=/i',
+                '/utm_campaign=/i',
+                '/utm_content=/i',
+                '/utm_term=/i',
+                '/dclid=/i',
+                '/gbraid=/i',
+                '/wbraid=/i',
+                // Google SafeFrame patterns
+                '/safeframe\.googlesyndication\.com/i',
+                '/googlesyndication\.com/i',
+                '/googleadservices\.com/i',
+                '/doubleclick\.net/i',
+                // Google Analytics patterns
+                '/google-analytics\.com/i',
+                '/googletagmanager\.com/i',
+                // Common Google URL parameters
+                '/[?&](typ|src|mdm|cmp|cnt|trm|id|plt)=/i',
+            ],
         ];
         
         // Only set if not already exists

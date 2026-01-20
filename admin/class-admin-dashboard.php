@@ -316,6 +316,49 @@ class VietShield_Admin_Dashboard {
             $sanitized['blocked_countries'] = [];
         }
         
+        // RCE Whitelist Patterns
+        if (!empty($input['rce_whitelist_patterns'])) {
+            // Check if input is already an array (from previous save or default)
+            if (is_array($input['rce_whitelist_patterns'])) {
+                $patterns = array_map('trim', $input['rce_whitelist_patterns']);
+            } else {
+                // Input is a string (from textarea), explode by newlines
+                $patterns = array_map('trim', explode("\n", $input['rce_whitelist_patterns']));
+            }
+            
+            $sanitized['rce_whitelist_patterns'] = array_filter($patterns, function($pattern) {
+                // Validate regex pattern (basic check)
+                if (empty($pattern)) {
+                    return false;
+                }
+                // Check if it's a valid regex pattern by testing it
+                $test_result = @preg_match($pattern, '');
+                return ($test_result !== false || preg_last_error() === PREG_NO_ERROR);
+            });
+        } else {
+            // Use default patterns if empty
+            $sanitized['rce_whitelist_patterns'] = [
+                '/gclid=/i',
+                '/gad_source=/i',
+                '/gad_campaignid=/i',
+                '/utm_source=/i',
+                '/utm_medium=/i',
+                '/utm_campaign=/i',
+                '/utm_content=/i',
+                '/utm_term=/i',
+                '/dclid=/i',
+                '/gbraid=/i',
+                '/wbraid=/i',
+                '/safeframe\.googlesyndication\.com/i',
+                '/googlesyndication\.com/i',
+                '/googleadservices\.com/i',
+                '/doubleclick\.net/i',
+                '/google-analytics\.com/i',
+                '/googletagmanager\.com/i',
+                '/[?&](typ|src|mdm|cmp|cnt|trm|id|plt)=/i',
+            ];
+        }
+        
         return $sanitized;
     }
     

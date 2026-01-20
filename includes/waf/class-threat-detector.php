@@ -285,16 +285,65 @@ class ThreatDetector {
     private function detect_rce($request_data) {
         $threats = [];
         
+        // Get RCE whitelist patterns
+        $whitelist_patterns = $this->get_option('rce_whitelist_patterns', []);
+        
         $sources = [
             'get' => $request_data['get'] ?? [],
             'post' => $request_data['post'] ?? [],
             'cookies' => $request_data['cookies'] ?? [],
         ];
         
+        // Also check URI and referer for whitelist patterns
+        $uri = $request_data['uri'] ?? '';
+        $referer = $request_data['referer'] ?? '';
+        $query_string = $request_data['query_string'] ?? '';
+        
+        // Combine all request data for whitelist checking
+        $all_request_data = $uri . ' ' . $referer . ' ' . $query_string;
+        
+        // Check if request matches whitelist patterns
+        $is_whitelisted = false;
+        if (!empty($whitelist_patterns) && is_array($whitelist_patterns)) {
+            foreach ($whitelist_patterns as $pattern) {
+                if (empty($pattern)) {
+                    continue;
+                }
+                // Check in URI, referer, query string, and all parameter values
+                if (preg_match($pattern, $all_request_data)) {
+                    $is_whitelisted = true;
+                    break;
+                }
+            }
+        }
+        
+        // If whitelisted, skip RCE detection
+        if ($is_whitelisted) {
+            return $threats;
+        }
+        
         foreach ($sources as $context => $values) {
             $values_to_check = is_array($values) ? $this->flatten_values($values) : [$values];
             
             foreach ($values_to_check as $value) {
+                // Check whitelist for individual parameter values
+                $value_whitelisted = false;
+                if (!empty($whitelist_patterns) && is_array($whitelist_patterns)) {
+                    foreach ($whitelist_patterns as $pattern) {
+                        if (empty($pattern)) {
+                            continue;
+                        }
+                        if (preg_match($pattern, $value)) {
+                            $value_whitelisted = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if ($value_whitelisted) {
+                    continue; // Skip this value if whitelisted
+                }
+                
                 $match = $this->rule_matcher->match($value, 'rce', $context);
                 if ($match) {
                     $threats[] = $match;
@@ -678,6 +727,29 @@ class ThreatDetector {
     private function detect_advanced_injection($request_data) {
         $threats = [];
         
+        // Get RCE whitelist patterns (shared with RCE detection)
+        $rce_whitelist_patterns = $this->get_option('rce_whitelist_patterns', []);
+        
+        // Combine request data for whitelist checking
+        $uri = $request_data['uri'] ?? '';
+        $referer = $request_data['referer'] ?? '';
+        $query_string = $request_data['query_string'] ?? '';
+        $all_request_data = $uri . ' ' . $referer . ' ' . $query_string;
+        
+        // Check if request matches whitelist patterns
+        $is_whitelisted = false;
+        if (!empty($rce_whitelist_patterns) && is_array($rce_whitelist_patterns)) {
+            foreach ($rce_whitelist_patterns as $pattern) {
+                if (empty($pattern)) {
+                    continue;
+                }
+                if (preg_match($pattern, $all_request_data)) {
+                    $is_whitelisted = true;
+                    break;
+                }
+            }
+        }
+        
         // Advanced injection patterns from Lua WAF
         $patterns = [
             // Path traversal (URL encoded)
@@ -736,7 +808,26 @@ class ThreatDetector {
                     foreach ($values as $val) {
                         if (empty($val) || !is_string($val)) continue;
                         
+                        // Check whitelist for RCE patterns
+                        $value_whitelisted = false;
+                        if ($is_whitelisted || (!empty($rce_whitelist_patterns) && is_array($rce_whitelist_patterns))) {
+                            foreach ($rce_whitelist_patterns as $pattern) {
+                                if (empty($pattern)) {
+                                    continue;
+                                }
+                                if (preg_match($pattern, $val) || preg_match($pattern, $all_request_data)) {
+                                    $value_whitelisted = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
                         foreach ($patterns as $rule) {
+                            // Skip RCE patterns if whitelisted
+                            if ($rule['type'] === 'rce' && ($is_whitelisted || $value_whitelisted)) {
+                                continue;
+                            }
+                            
                             if (preg_match($rule['pattern'], $val)) {
                                 $threats[] = [
                                     'rule_id' => 'adv_injection_' . $rule['type'],

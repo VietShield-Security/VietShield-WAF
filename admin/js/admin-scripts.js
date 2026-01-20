@@ -1036,11 +1036,24 @@
         }
     }
 
+    // Toggle RCE whitelist section based on RCE checkbox
+    function updateRceWhitelistSection() {
+        var rceEnabled = $('input[name="vietshield_options[block_rce]"]').is(':checked');
+        var $rceSection = $('#rce-whitelist-section');
+        
+        if (rceEnabled) {
+            $rceSection.slideDown(200);
+        } else {
+            $rceSection.slideUp(200);
+        }
+    }
+
     // Initialize on page load - only update early blocking toggle
     // Container visibility is controlled by PHP based on saved value
     $(document).ready(function () {
         updateEarlyBlockingToggle();
         updateWhitelistAdminsToggle();
+        updateRceWhitelistSection();
 
         // Update early blocking toggle when firewall mode changes
         $('#firewall-mode-select').on('change', function () {
@@ -1105,6 +1118,11 @@
         if ($(this).is(':checked')) {
             $(this).closest('.radio-card').addClass('active');
         }
+    });
+
+    // Toggle RCE whitelist section when RCE checkbox changes
+    $(document).on('change', 'input[name="vietshield_options[block_rce]"]', function() {
+        updateRceWhitelistSection();
     });
 
 })(jQuery);

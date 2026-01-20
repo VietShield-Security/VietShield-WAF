@@ -196,6 +196,9 @@ class LoginSecurity {
             
             $user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])) : '';
             
+            // Generate Block ID (same format as WAF Engine)
+            $block_id = substr(md5(time() . microtime(true) . $ip . 'login_brute_force'), 0, 12);
+            
             $logger->log([
                 'ip' => $ip,
                 'request_uri' => '/wp-login.php',
@@ -205,6 +208,7 @@ class LoginSecurity {
                 'rule_id' => 'login_brute_force',
                 'attack_type' => 'brute_force',
                 'severity' => 'high',
+                'block_id' => $block_id,
             ]);
         }
     }

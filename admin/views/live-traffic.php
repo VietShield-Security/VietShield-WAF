@@ -39,11 +39,17 @@ if (!defined('ABSPATH')) {
                     <label for="filter-type"><?php esc_html_e('Attack Type', 'vietshield-waf'); ?></label>
                     <select id="filter-type">
                         <option value=""><?php esc_html_e('All', 'vietshield-waf'); ?></option>
-                        <option value="sqli">SQL Injection</option>
-                        <option value="xss">XSS</option>
-                        <option value="rce">RCE</option>
-                        <option value="lfi">LFI</option>
-                        <option value="bad_bot">Bad Bot</option>
+                        <option value="sqli"><?php esc_html_e('SQL Injection', 'vietshield-waf'); ?></option>
+                        <option value="xss"><?php esc_html_e('XSS', 'vietshield-waf'); ?></option>
+                        <option value="rce"><?php esc_html_e('RCE', 'vietshield-waf'); ?></option>
+                        <option value="lfi"><?php esc_html_e('LFI', 'vietshield-waf'); ?></option>
+                        <option value="bad_bot"><?php esc_html_e('Bad Bot', 'vietshield-waf'); ?></option>
+                        <option value="brute_force"><?php esc_html_e('Brute Force', 'vietshield-waf'); ?></option>
+                        <option value="threat_intel"><?php esc_html_e('Threat Intelligence', 'vietshield-waf'); ?></option>
+                        <option value="enumeration"><?php esc_html_e('Enumeration', 'vietshield-waf'); ?></option>
+                        <option value="rate_limit"><?php esc_html_e('Rate Limit', 'vietshield-waf'); ?></option>
+                        <option value="xmlrpc"><?php esc_html_e('XML-RPC', 'vietshield-waf'); ?></option>
+                        <option value="ssrf"><?php esc_html_e('SSRF', 'vietshield-waf'); ?></option>
                     </select>
                 </div>
                 <div class="filter-group">
