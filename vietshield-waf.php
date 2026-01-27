@@ -3,7 +3,7 @@
  * Plugin Name: VietShield WAF
  * Plugin URI: https://vietshield.org
  * Description: High-performance Web Application Firewall (WAF) for WordPress. Protects against SQL Injection, XSS, RCE, and more with advanced traffic analysis and real-time blocking.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: VietShield Security
  * Author URI: https://github.com/VietShield-Security
  * License: GPL v2 or later
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('VIETSHIELD_VERSION', '1.0.2');
+define('VIETSHIELD_VERSION', '1.0.3');
 define('VIETSHIELD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('VIETSHIELD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('VIETSHIELD_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -42,7 +42,7 @@ spl_autoload_register(function ($class) {
     $relative_class = strtolower($relative_class);
     $relative_class = str_replace('\\', '/', $relative_class);
     $relative_class = str_replace('_', '-', $relative_class);
-    
+
     // Map class names to file paths
     $class_map = [
         'waf/wafengine' => 'waf/class-waf-engine.php',
@@ -55,7 +55,7 @@ spl_autoload_register(function ($class) {
         'firewall/ratelimiter' => 'firewall/class-rate-limiter.php',
         'scanner/filescanner' => 'scanner/class-file-scanner.php',
     ];
-    
+
     if (isset($class_map[$relative_class])) {
         $file = $base_dir . $class_map[$relative_class];
     } else {
@@ -90,20 +90,21 @@ register_deactivation_hook(__FILE__, ['VietShield_Deactivator', 'deactivate']);
 add_action('muplugins_loaded', 'vietshield_init_waf_early', -999999);
 add_action('plugins_loaded', 'vietshield_init_waf_early', -999999);
 
-function vietshield_init_waf_early() {
+function vietshield_init_waf_early()
+{
     static $initialized = false;
-    
+
     if ($initialized) {
         return;
     }
     $initialized = true;
-    
+
     // Check if WAF is enabled
     $options = get_option('vietshield_options', []);
     if (isset($options['waf_enabled']) && !$options['waf_enabled']) {
         return;
     }
-    
+
     // Load and initialize WAF engine
     require_once VIETSHIELD_PLUGIN_DIR . 'includes/waf/class-waf-engine.php';
     $waf = VietShield\WAF\WAFEngine::get_instance();
@@ -115,7 +116,8 @@ function vietshield_init_waf_early() {
  */
 add_action('plugins_loaded', 'vietshield_init');
 
-function vietshield_init() {
+function vietshield_init()
+{
     // Ensure DB schema is up to date
     if (get_option('vietshield_db_version') !== VIETSHIELD_DB_VERSION) {
         VietShield_Activator::maybe_upgrade();
@@ -123,20 +125,20 @@ function vietshield_init() {
 
     // Load text domain (needed for self-hosted plugins)
 
-    
+
     // Initialize Login Security
     $options = get_option('vietshield_options', []);
     if (isset($options['login_security_enabled']) && $options['login_security_enabled']) {
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/integrations/class-login-security.php';
         new \VietShield\Integrations\LoginSecurity();
     }
-    
+
     // Initialize admin
     if (is_admin()) {
         require_once VIETSHIELD_PLUGIN_DIR . 'admin/class-admin-dashboard.php';
         new VietShield_Admin_Dashboard();
     }
-    
+
     // Schedule threat intelligence sync if enabled
     require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-threat-intelligence.php';
     \VietShield\Firewall\ThreatIntelligence::schedule_sync();
@@ -152,7 +154,7 @@ add_filter('cron_schedules', function ($schedules) {
             'display' => __('Once Weekly', 'vietshield-waf'),
         ];
     }
-    
+
     // 5 minutes interval for Threats Sharing
     if (!isset($schedules['vietshield_5minutes'])) {
         $schedules['vietshield_5minutes'] = [
@@ -160,7 +162,7 @@ add_filter('cron_schedules', function ($schedules) {
             'display' => __('Every 5 Minutes', 'vietshield-waf'),
         ];
     }
-    
+
     // Threat Intelligence intervals
     if (!isset($schedules['vietshield_threat_intel_interval'])) {
         // This will be set dynamically based on category
@@ -169,7 +171,7 @@ add_filter('cron_schedules', function ($schedules) {
             'display' => __('VietShield Threat Intel Interval', 'vietshield-waf'),
         ];
     }
-    
+
     return $schedules;
 });
 
@@ -207,12 +209,12 @@ add_action('vietshield_threat_intel_sync', function () {
 add_action('vietshield_threat_intel_initial_sync', function () {
     require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-threat-intelligence.php';
     $options = get_option('vietshield_options', []);
-    
+
     // Only sync if threat intel is enabled
     if (!empty($options['threat_intel_enabled']) && !empty($options['threat_intel_category'])) {
         $threat_intel = new \VietShield\Firewall\ThreatIntelligence();
         $result = $threat_intel->sync_feed($options['threat_intel_category']);
-        
+
         // Log result for debugging
         if ($result && isset($result['success'])) {
             if ($result['success']) {
@@ -282,7 +284,7 @@ add_action('vietshield_sync_ip_metadata', function () {
 /**
  * Ensure cron jobs are scheduled (Auto-repair)
  */
-add_action('init', function() {
+add_action('init', function () {
     // Threats Sharing - Update to 5 minutes interval
     // Clear any existing scheduled events with old interval
     $timestamp = wp_next_scheduled('vietshield_submit_threats');
@@ -295,7 +297,7 @@ add_action('init', function() {
     if (!wp_next_scheduled('vietshield_submit_threats')) {
         wp_schedule_event(time(), 'vietshield_5minutes', 'vietshield_submit_threats');
     }
-    
+
     // IP Metadata Sync - Every 5 minutes
     if (!wp_next_scheduled('vietshield_sync_ip_metadata')) {
         wp_schedule_event(time(), 'vietshield_5minutes', 'vietshield_sync_ip_metadata');

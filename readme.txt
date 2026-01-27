@@ -3,7 +3,7 @@ Contributors: vietshield
 Tags: security, firewall, waf, malware, protection
 Requires at least: 5.0
 Tested up to: 6.7
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -73,6 +73,11 @@ You can manually remove your IP from the `vietshield_ip_lists` database table us
 3.  **Live traffic logs**
 
 == Changelog ==
+
+= 1.0.3 =
+*   Fixed: Wizard setup 403 Forbidden error at step 3 when completing setup.
+*   Fixed: Nonce verification mismatch in wizard AJAX handlers.
+*   Improved: Wizard "Complete Setup" button now works correctly.
 
 = 1.0.2 =
 *   Initial release to WordPress.org directory.

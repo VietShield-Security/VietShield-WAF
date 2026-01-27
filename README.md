@@ -4,14 +4,14 @@
 **Tags:** security, firewall, waf, malware, protection  
 **Requires at least:** 5.0  
 **Tested up to:** 6.9  
-**Stable tag:** 1.0.2  
+**Stable tag:** 1.0.3  
 **Requires PHP:** 7.4  
 **License:** GPLv2 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
 High-performance Web Application Firewall for WordPress with real-time threat detection and blocking.
 
-**Version:** 1.0.2  
+**Version:** 1.0.3  
 **Web:** [https://vietshield.org](https://vietshield.org)  
 **Recommended Webserver:** Nginx/Openresty
 
@@ -150,6 +150,21 @@ A: No. VietShield is optimized for performance. It uses intelligent bypass for s
 
 **Q: I blocked myself! What do I do?**  
 A: You can manually remove your IP from the `vietshield_ip_lists` database table, or rename the plugin folder via FTP to temporarily disable it.
+
+---
+
+## 📝 Changelog
+
+### Version 1.0.3 (2026-01-27)
+**Bug Fixes:**
+- Fixed wizard setup 403 Forbidden error at step 3 when completing setup
+- Changed nonce verification in wizard AJAX handlers to match JavaScript nonce generation
+- Wizard "Complete Setup" button now works correctly
+
+### Version 1.0.2
+- Initial release to WordPress.org directory
+- Added comprehensive WAF engine
+- Integrated Threat Intelligence sharing
 
 ---
 
