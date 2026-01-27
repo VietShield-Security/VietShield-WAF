@@ -1,0 +1,277 @@
+{
+  "name": "Bad Bots and Scanners Rules",
+  "version": "1.0.0",
+  "description": "Rules to detect malicious bots and security scanners",
+  "rules": [
+    {
+      "id": "bot_001",
+      "name": "SQLMap Scanner",
+      "description": "Detects SQLMap SQL injection scanner",
+      "pattern": "sqlmap",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_002",
+      "name": "Nikto Scanner",
+      "description": "Detects Nikto web scanner",
+      "pattern": "nikto",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_003",
+      "name": "Nmap Scanner",
+      "description": "Detects Nmap port scanner",
+      "pattern": "nmap",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_004",
+      "name": "Masscan Scanner",
+      "description": "Detects Masscan port scanner",
+      "pattern": "masscan",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_005",
+      "name": "ZGrab Scanner",
+      "description": "Detects ZGrab scanner",
+      "pattern": "zgrab",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_006",
+      "name": "Dirbuster Scanner",
+      "description": "Detects Dirbuster directory scanner",
+      "pattern": "dirbuster",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_007",
+      "name": "Gobuster Scanner",
+      "description": "Detects Gobuster directory scanner",
+      "pattern": "gobuster",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_008",
+      "name": "WPScan Scanner",
+      "description": "Detects WPScan WordPress scanner",
+      "pattern": "wpscan",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_009",
+      "name": "Nuclei Scanner",
+      "description": "Detects Nuclei vulnerability scanner",
+      "pattern": "nuclei",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_010",
+      "name": "Acunetix Scanner",
+      "description": "Detects Acunetix web scanner",
+      "pattern": "acunetix",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_011",
+      "name": "Nessus Scanner",
+      "description": "Detects Nessus vulnerability scanner",
+      "pattern": "nessus",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_012",
+      "name": "OpenVAS Scanner",
+      "description": "Detects OpenVAS vulnerability scanner",
+      "pattern": "openvas",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_013",
+      "name": "Qualys Scanner",
+      "description": "Detects Qualys vulnerability scanner",
+      "pattern": "qualys",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_014",
+      "name": "Havij SQLi Tool",
+      "description": "Detects Havij SQL injection tool",
+      "pattern": "havij",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_015",
+      "name": "w3af Scanner",
+      "description": "Detects w3af web scanner",
+      "pattern": "w3af",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_016",
+      "name": "Skipfish Scanner",
+      "description": "Detects Skipfish web scanner",
+      "pattern": "skipfish",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_017",
+      "name": "HTTrack Copier",
+      "description": "Detects HTTrack website copier",
+      "pattern": "httrack",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_018",
+      "name": "libwww-perl Bot",
+      "description": "Detects libwww-perl based bots",
+      "pattern": "libwww-perl",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_019",
+      "name": "Python Requests",
+      "description": "Detects Python requests library",
+      "pattern": "python-requests",
+      "severity": "low",
+      "enabled": false,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_020",
+      "name": "Go HTTP Client",
+      "description": "Detects Go HTTP client",
+      "pattern": "go-http-client",
+      "severity": "low",
+      "enabled": false,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_021",
+      "name": "Curl Bot",
+      "description": "Detects curl command line tool",
+      "pattern": "^curl\\/",
+      "severity": "low",
+      "enabled": false,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_022",
+      "name": "Wget Bot",
+      "description": "Detects wget download tool",
+      "pattern": "^wget\\/",
+      "severity": "low",
+      "enabled": false,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_023",
+      "name": "Scrapy Spider",
+      "description": "Detects Scrapy web spider",
+      "pattern": "scrapy",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_024",
+      "name": "Empty User Agent",
+      "description": "Detects requests with empty user agent",
+      "pattern": "^$",
+      "severity": "low",
+      "enabled": false,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_025",
+      "name": "Suspicious User Agent",
+      "description": "Detects suspiciously short user agents",
+      "pattern": "^.{1,10}$",
+      "severity": "low",
+      "enabled": false,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_026",
+      "name": "Java HTTP Client",
+      "description": "Detects Java HTTP clients",
+      "pattern": "^java\\/",
+      "severity": "low",
+      "enabled": false,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_027",
+      "name": "Censys Scanner",
+      "description": "Detects Censys internet scanner",
+      "pattern": "censys",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_028",
+      "name": "Shodan Scanner",
+      "description": "Detects Shodan internet scanner",
+      "pattern": "shodan",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_029",
+      "name": "Burp Suite Scanner",
+      "description": "Detects Burp Suite proxy scanner",
+      "pattern": "burp",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    },
+    {
+      "id": "bot_030",
+      "name": "OWASP ZAP Scanner",
+      "description": "Detects OWASP ZAP security scanner",
+      "pattern": "(zap|zaproxy)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["user_agent"]
+    }
+  ]
+}

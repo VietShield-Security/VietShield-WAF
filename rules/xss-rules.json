@@ -1,0 +1,277 @@
+{
+  "name": "Cross-Site Scripting (XSS) Rules",
+  "version": "1.0.0",
+  "description": "Rules to detect XSS attacks",
+  "rules": [
+    {
+      "id": "xss_001",
+      "name": "Script Tag",
+      "description": "Detects <script> tag injection",
+      "pattern": "<script[^>]*>",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_002",
+      "name": "Script Tag with Content",
+      "description": "Detects script tags with content",
+      "pattern": "<script[^>]*>[\\s\\S]*?<\\/script>",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_003",
+      "name": "Event Handler - onload",
+      "description": "Detects onload event handler",
+      "pattern": "\\bon(load|error)\\s*=",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_004",
+      "name": "Event Handler - Mouse Events",
+      "description": "Detects mouse event handlers",
+      "pattern": "\\bon(mouse(over|out|move|down|up)|click|dblclick)\\s*=",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_005",
+      "name": "Event Handler - Keyboard Events",
+      "description": "Detects keyboard event handlers",
+      "pattern": "\\bon(key(down|up|press))\\s*=",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_006",
+      "name": "Event Handler - Focus Events",
+      "description": "Detects focus event handlers",
+      "pattern": "\\bon(focus|blur|change|submit)\\s*=",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_007",
+      "name": "JavaScript Protocol",
+      "description": "Detects javascript: protocol usage",
+      "pattern": "javascript\\s*:",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_008",
+      "name": "VBScript Protocol",
+      "description": "Detects vbscript: protocol usage",
+      "pattern": "vbscript\\s*:",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_009",
+      "name": "Data URI Base64",
+      "description": "Detects data URI with base64 encoding",
+      "pattern": "data\\s*:[^,]*;\\s*base64",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_010",
+      "name": "SVG onload",
+      "description": "Detects SVG with onload handler",
+      "pattern": "<svg[^>]*\\bonload\\s*=",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_011",
+      "name": "IMG onerror",
+      "description": "Detects IMG with onerror handler",
+      "pattern": "<img[^>]*\\bonerror\\s*=",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_012",
+      "name": "BODY onload",
+      "description": "Detects BODY with onload handler",
+      "pattern": "<body[^>]*\\bonload\\s*=",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_013",
+      "name": "IFRAME Injection",
+      "description": "Detects iframe tag injection",
+      "pattern": "<iframe[^>]*>",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_014",
+      "name": "OBJECT Tag",
+      "description": "Detects object tag injection",
+      "pattern": "<object[^>]*>",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_015",
+      "name": "EMBED Tag",
+      "description": "Detects embed tag injection",
+      "pattern": "<embed[^>]*>",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_016",
+      "name": "FORM Tag",
+      "description": "Detects form tag injection",
+      "pattern": "<form[^>]*>",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["get", "post"]
+    },
+    {
+      "id": "xss_017",
+      "name": "STYLE Expression",
+      "description": "Detects CSS expression() usage",
+      "pattern": "expression\\s*\\(",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_018",
+      "name": "Eval Function",
+      "description": "Detects eval() function usage",
+      "pattern": "\\beval\\s*\\(",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_019",
+      "name": "Document.cookie",
+      "description": "Detects document.cookie access",
+      "pattern": "document\\s*\\.\\s*cookie",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_020",
+      "name": "Document.write",
+      "description": "Detects document.write usage",
+      "pattern": "document\\s*\\.\\s*write(ln)?\\s*\\(",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_021",
+      "name": "innerHTML Assignment",
+      "description": "Detects innerHTML manipulation",
+      "pattern": "\\.innerHTML\\s*=",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_022",
+      "name": "window.location",
+      "description": "Detects window.location manipulation",
+      "pattern": "(window|self|top|parent)\\s*\\.\\s*location\\s*=",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_023",
+      "name": "SetTimeout/SetInterval String",
+      "description": "Detects setTimeout/setInterval with string argument",
+      "pattern": "\\bset(timeout|interval)\\s*\\(\\s*['\"]",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_024",
+      "name": "Function Constructor",
+      "description": "Detects new Function() usage",
+      "pattern": "\\bnew\\s+Function\\s*\\(",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_025",
+      "name": "fromCharCode",
+      "description": "Detects String.fromCharCode obfuscation",
+      "pattern": "String\\s*\\.\\s*fromCharCode\\s*\\(",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_026",
+      "name": "Base Tag",
+      "description": "Detects base tag injection",
+      "pattern": "<base[^>]*href\\s*=",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_027",
+      "name": "Link Tag Stylesheet",
+      "description": "Detects external stylesheet injection",
+      "pattern": "<link[^>]*rel\\s*=\\s*['\"]?stylesheet",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_028",
+      "name": "Meta Refresh",
+      "description": "Detects meta refresh redirect",
+      "pattern": "<meta[^>]*http-equiv\\s*=\\s*['\"]?refresh",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_029",
+      "name": "MARQUEE/BGSOUND Tag",
+      "description": "Detects deprecated HTML tags with events",
+      "pattern": "<(marquee|bgsound)[^>]*\\bon\\w+\\s*=",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "xss_030",
+      "name": "XML Data Island",
+      "description": "Detects XML data island injection",
+      "pattern": "<xml[^>]*>",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    }
+  ]
+}
