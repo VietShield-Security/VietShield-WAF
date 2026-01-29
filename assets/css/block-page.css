@@ -1,3 +1,8 @@
+/**
+ * VietShield WAF - Block Page Styles
+ * Professional and responsive design for 403 blocked page
+ */
+
 * {
     margin: 0;
     padding: 0;
@@ -5,7 +10,7 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
     min-height: 100vh;
     display: flex;
@@ -13,101 +18,267 @@ body {
     justify-content: center;
     padding: 20px;
     color: #e2e8f0;
+    line-height: 1.6;
 }
 
+/* Main Container */
 .container {
-    max-width: 600px;
+    max-width: 520px;
     width: 100%;
     text-align: center;
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 48px 40px;
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    animation: fadeInUp 0.6s ease-out;
 }
 
-.card {
-    background: rgba(30, 41, 59, 0.8);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 40px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.icon {
-    font-size: 64px;
+/* Shield Icon */
+.shield-icon {
     margin-bottom: 24px;
-    display: inline-block;
-    animation: pulse 2s infinite;
+    animation: pulse 3s ease-in-out infinite;
+}
+
+.shield-icon svg {
+    width: 120px;
+    height: 120px;
+    transition: transform 0.3s ease;
 }
 
 @keyframes pulse {
-    0% {
+    0%, 100% {
         transform: scale(1);
         opacity: 1;
     }
-
     50% {
-        transform: scale(1.1);
-        opacity: 0.8;
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
+        transform: scale(1.05);
+        opacity: 0.9;
     }
 }
 
-h1 {
+/* Status Code */
+.status-code {
+    font-size: 72px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Status Text */
+.status-text {
     font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    color: #fff;
-}
-
-p.message {
-    font-size: 16px;
-    line-height: 1.6;
-    margin-bottom: 30px;
-    color: #94a3b8;
-}
-
-.details {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    padding: 20px;
-    text-align: left;
-    margin-bottom: 30px;
-}
-
-.detail-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    font-size: 14px;
-}
-
-.detail-row:last-child {
-    margin-bottom: 0;
-}
-
-.detail-label {
-    color: #64748b;
-}
-
-.detail-value {
-    color: #e2e8f0;
-    font-family: monospace;
     font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 24px;
+    letter-spacing: 0.5px;
 }
 
+/* Message Box */
+.message-box {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    border-left: 4px solid #ff6b35;
+    text-align: left;
+}
+
+.message-box p {
+    font-size: 15px;
+    color: #cbd5e1;
+    margin: 0;
+    line-height: 1.7;
+}
+
+/* Info Grid */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.info-item {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: left;
+    transition: background 0.3s ease;
+}
+
+.info-item:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.info-item .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.info-item .value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    word-break: break-all;
+}
+
+/* Footer */
 .footer {
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.footer p {
     font-size: 13px;
-    color: #475569;
+    color: #64748b;
+    margin: 0;
 }
 
 .footer a {
-    color: #64748b;
+    color: #94a3b8;
     text-decoration: none;
-    transition: color 0.2s;
+    font-weight: 600;
+    transition: color 0.3s ease;
 }
 
 .footer a:hover {
-    color: #94a3b8;
+    color: #ff6b35;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 600px) {
+    body {
+        padding: 16px;
+    }
+
+    .container {
+        padding: 36px 24px;
+        border-radius: 20px;
+    }
+
+    .shield-icon svg {
+        width: 100px;
+        height: 100px;
+    }
+
+    .status-code {
+        font-size: 56px;
+    }
+
+    .status-text {
+        font-size: 20px;
+        margin-bottom: 20px;
+    }
+
+    .message-box {
+        padding: 16px 20px;
+        margin-bottom: 24px;
+    }
+
+    .message-box p {
+        font-size: 14px;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .info-item {
+        padding: 14px 16px;
+    }
+
+    .info-item .value {
+        font-size: 13px;
+    }
+}
+
+@media screen and (max-width: 380px) {
+    .container {
+        padding: 28px 20px;
+    }
+
+    .shield-icon svg {
+        width: 80px;
+        height: 80px;
+    }
+
+    .status-code {
+        font-size: 48px;
+    }
+
+    .status-text {
+        font-size: 18px;
+    }
+
+    .message-box p {
+        font-size: 13px;
+    }
+
+    .footer p {
+        font-size: 12px;
+    }
+}
+
+/* Dark mode preference enhancements */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0a0a14 100%);
+    }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .container {
+        animation: none;
+    }
+
+    .shield-icon {
+        animation: none;
+    }
+
+    .shield-icon svg {
+        transition: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .container {
+        border: 2px solid #ffffff;
+    }
+
+    .message-box {
+        border-left-width: 6px;
+    }
+
+    .info-item {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
 }
