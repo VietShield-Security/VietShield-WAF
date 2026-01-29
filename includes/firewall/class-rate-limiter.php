@@ -34,7 +34,7 @@ class RateLimiter {
         
         $this->limits = [
             'global' => [
-                'requests' => $options['rate_limit_global'] ?? 100,
+                'requests' => $options['rate_limit_global'] ?? 250,
                 'window' => 60, // 1 minute
             ],
             'login' => [

@@ -541,7 +541,7 @@ class VietShield_Activator {
             // Auto-whitelist trusted IP ranges
             'whitelist_googlebot' => true,        // Auto-whitelist Googlebot IP ranges
             'rate_limiting_enabled' => true,
-            'rate_limit_global' => 100, // requests per minute
+            'rate_limit_global' => 250, // requests per minute
             'rate_limit_login' => 20,   // login attempts per 5 minutes
             'rate_limit_xmlrpc' => 20,  // xmlrpc requests per minute
             'block_xmlrpc' => false,
@@ -632,7 +632,7 @@ class VietShield_Activator {
             
             // Ensure rate limits have correct defaults (only if not set)
             if (!isset($existing_options['rate_limit_global'])) {
-                $existing_options['rate_limit_global'] = 100;
+                $existing_options['rate_limit_global'] = 250;
                 $needs_update = true;
             }
             if (!isset($existing_options['rate_limit_login'])) {

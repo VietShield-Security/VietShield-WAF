@@ -511,8 +511,8 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                         <tr>
                             <th scope="row"><?php esc_html_e('Global Rate Limit', 'vietshield-waf'); ?></th>
                             <td>
-                                <input type="number" name="vietshield_options[rate_limit_global]" 
-                                       value="<?php echo esc_attr($vswaf_options['rate_limit_global'] ?? 100); ?>" 
+                                <input type="number" name="vietshield_options[rate_limit_global]"
+                                       value="<?php echo esc_attr($vswaf_options['rate_limit_global'] ?? 250); ?>"
                                        class="small-text" min="10" max="1000">
                                 <span class="description"><?php esc_html_e('requests per minute', 'vietshield-waf'); ?></span>
                             </td>

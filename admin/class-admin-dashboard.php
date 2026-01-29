@@ -280,7 +280,7 @@ class VietShield_Admin_Dashboard {
         
         // Integer options
         $int_options = [
-            'rate_limit_global' => 100,
+            'rate_limit_global' => 250,
             'rate_limit_login' => 20,
             'rate_limit_xmlrpc' => 20,
             'auto_block_threshold' => 10,
