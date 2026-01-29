@@ -55,7 +55,7 @@ graph TD
 
 ---
 
-## � Installation
+## 📦 Installation
 
 1.  Download the latest release ZIP file from the [Releases page](https://github.com/VietShield-Security/VietShield-WAF/releases).
 2.  Go to your WordPress Admin Dashboard > **Plugins** > **Add New** > **Upload Plugin**.
@@ -143,28 +143,81 @@ This plugin relies on the following third-party services to provide enhanced sec
 
 ---
 
-## ❓ FAQ
+## ❓ Frequently Asked Questions
 
-**Q: Will this slow down my site?**  
-A: No. VietShield is optimized for performance. It uses intelligent bypass for static files and executes heavy logging tasks in the background.
+### Is VietShield WAF safe and malware-free?
+Absolutely. VietShield is 100% open-source and transparent. You can inspect every line of code on our [GitHub Repository](https://github.com/VietShield-Security/VietShield-WAF) to verify it's clean and secure. No hidden code, no backdoors.
 
-**Q: I blocked myself! What do I do?**  
-A: You can manually remove your IP from the `vietshield_ip_lists` database table, or rename the plugin folder via FTP to temporarily disable it.
+### Will this slow down my website?
+No. VietShield is optimized for zero latency. It uses intelligent bypass for static files (images, CSS, JS) and executes heavy logging tasks asynchronously in the background. Your visitors experience no delay.
+
+### I accidentally blocked myself! How do I get back in?
+Don't panic. You have two options:
+1. Manually remove your IP from the `vietshield_ip_lists` database table using phpMyAdmin
+2. Rename the `vietshield-waf` plugin folder via FTP/File Manager to temporarily disable the firewall
+
+### What's the difference between Learning Mode and Protecting Mode?
+**Learning Mode** logs threats without blocking them - perfect for testing and fine-tuning rules. **Protecting Mode** actively blocks detected threats. Start with Learning Mode to avoid false positives, then switch to Protecting Mode once configured.
+
+### Is VietShield compatible with other security plugins?
+Yes, but we recommend using VietShield as your primary WAF. It works alongside backup plugins, but avoid running multiple WAFs simultaneously as they may conflict. VietShield provides comprehensive protection that typically replaces the need for other security plugins.
+
+### How does the Threat Intelligence feature work?
+VietShield syncs with our community threat network to receive real-time IP blacklists. You can choose 1-day, 7-day, or 30-day feeds. We also auto-whitelist legitimate crawlers like Googlebot and Cloudflare IPs to prevent false positives.
+
+### Where can I get support if I need help?
+You can get support through our [GitHub Issues](https://github.com/VietShield-Security/VietShield-WAF/issues) page or email us at [support@vietshield.org](mailto:support@vietshield.org). Our community and team are active in helping users configure and optimize their security.
 
 ---
 
 ## 📝 Changelog
 
-### Version 1.0.3 (2026-01-27)
+### Version 1.0.3 (2026-01-29)
 **Bug Fixes:**
 - Fixed wizard setup 403 Forbidden error at step 3 when completing setup
-- Changed nonce verification in wizard AJAX handlers to match JavaScript nonce generation
+- Fixed nonce verification mismatch in wizard AJAX handlers
+
+**Improvements:**
 - Wizard "Complete Setup" button now works correctly
 
-### Version 1.0.2
-- Initial release to WordPress.org directory
-- Added comprehensive WAF engine
-- Integrated Threat Intelligence sharing
+### Version 1.0.2 (2026-01-21)
+**New Features & Improvements:**
+- Smart Timezone Sync: Removed manual timezone configuration. The WAF now automatically synchronizes with your WordPress timezone settings for accurate logging.
+- Cloudflare Integration: Added native support for Cloudflare Trusted Proxies. The WAF automatically fetches and trusts Cloudflare IP ranges to prevent false positives when behind their proxy.
+- Automated Whitelist Updates: Implemented daily automated synchronization for Googlebot IP ranges and Cloudflare IPs to ensure your whitelist is always up-to-date.
+- Attack Type Classification: Enhanced Early Blocker to intelligently assign attack types based on block reasons, improving log accuracy.
+
+**Bug Fixes:**
+- Persistent Block IDs: Fixed issue where Block IDs were regenerating on every reload.
+- Threat Sharing Sync: Fixed critical issue where IPs blocked by High-Performance Early Blocker were not being synced to the Threat Sharing API.
+- Block Labeling: Fixed incorrect display of "TEMP_BLOCK" for permanently blacklisted IPs.
+- Timezone Consistency: Fixed double timezone conversion issues in Live Traffic and Login Security views.
+- Login Security Logging: Fixed an issue where login attempts were stored in local time, causing incorrect timestamps.
+
+### Version 1.0.1 (2026-01-20)
+**Bug Fixes:**
+- Dashboard z-index: Fixed issue where other plugin notifications were overlapping VietShield WAF dashboard.
+- Live Traffic Block ID: Fixed empty Block ID when visitor is blocked with Brute Force attack type.
+- Attack Type Filter: Added missing attack types to Live Traffic filter dropdown.
+- Threats Sharing: Fixed issue where brute force attacks were not being queued for submission to Intelligence API.
+- Metadata Retrieval: Improved IP metadata retrieval when queueing threats.
+- RCE Whitelist Sanitization: Fixed TypeError when saving RCE whitelist patterns.
+
+**Improvements:**
+- RCE Rule Default: Remote Code Execution (RCE) protection is now OFF by default to prevent false positives with Google Ads.
+- RCE Whitelist Management: Added comprehensive regex-based whitelist system for RCE rules.
+- RCE Detection Enhancement: Improved RCE detection to check whitelist patterns before blocking.
+- Threats Sharing Metadata: Enhanced metadata enrichment for threat IPs.
+- CSS Styling: Added CSS styles for new attack types in Live Traffic view.
+
+### Version 1.0.0 (2026-01-16)
+- Initial release
+- Advanced WAF engine with SQLi, XSS, RCE, LFI protection
+- Live Traffic & Analytics
+- IP Management & Firewall (Whitelist, Blacklist, Geo-Blocking)
+- Threat Intelligence integration
+- Malware & Integrity Scanner
+- Login Security with Brute Force Protection
 
 ---
 
