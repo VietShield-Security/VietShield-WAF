@@ -1,0 +1,232 @@
+{
+  "name": "SQL Injection Rules",
+  "version": "1.0.0",
+  "description": "Rules to detect SQL injection attacks",
+  "rules": [
+    {
+      "id": "sqli_001",
+      "name": "Union Select Attack",
+      "description": "Detects UNION SELECT SQL injection attempts",
+      "pattern": "\\bunion\\b[\\s\\S]*?\\bselect\\b",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_002",
+      "name": "OR/AND Boolean Injection",
+      "description": "Detects OR/AND based boolean SQL injection",
+      "pattern": "(['\"]?)\\s*\\b(or|and)\\b\\s*['\"]?\\d+['\"]?\\s*[=<>]+\\s*['\"]?\\d+",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_003",
+      "name": "Classic OR 1=1",
+      "description": "Detects classic OR 1=1 injection",
+      "pattern": "['\"]\\s*(or|and)\\s*['\"]?1['\"]?\\s*=\\s*['\"]?1",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_004",
+      "name": "Stacked Queries - DROP",
+      "description": "Detects DROP TABLE/DATABASE attempts",
+      "pattern": ";\\s*drop\\s+(table|database|index)\\b",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_005",
+      "name": "Stacked Queries - DELETE",
+      "description": "Detects DELETE statement injection",
+      "pattern": ";\\s*delete\\s+from\\b",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_006",
+      "name": "Stacked Queries - TRUNCATE",
+      "description": "Detects TRUNCATE TABLE attempts",
+      "pattern": ";\\s*truncate\\s+table\\b",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_007",
+      "name": "Stacked Queries - UPDATE",
+      "description": "Detects UPDATE statement injection",
+      "pattern": ";\\s*update\\s+\\w+\\s+set\\b",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_008",
+      "name": "Stacked Queries - INSERT",
+      "description": "Detects INSERT statement injection",
+      "pattern": ";\\s*insert\\s+into\\b",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_009",
+      "name": "Time-based - SLEEP",
+      "description": "Detects SLEEP() time-based injection",
+      "pattern": "\\bsleep\\s*\\(\\s*\\d+\\s*\\)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_010",
+      "name": "Time-based - BENCHMARK",
+      "description": "Detects BENCHMARK() time-based injection",
+      "pattern": "\\bbenchmark\\s*\\(",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_011",
+      "name": "Time-based - WAITFOR DELAY",
+      "description": "Detects MSSQL WAITFOR DELAY injection",
+      "pattern": "\\bwaitfor\\s+delay\\b",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_012",
+      "name": "Information Schema Access",
+      "description": "Detects information_schema access",
+      "pattern": "information_schema\\.(tables|columns|schemata)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_013",
+      "name": "MySQL System Tables",
+      "description": "Detects MySQL system table access",
+      "pattern": "\\bmysql\\.(user|db|host)\\b",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_014",
+      "name": "LOAD_FILE Function",
+      "description": "Detects LOAD_FILE() file read attempt",
+      "pattern": "\\bload_file\\s*\\(",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_015",
+      "name": "INTO OUTFILE/DUMPFILE",
+      "description": "Detects file write attempts",
+      "pattern": "\\binto\\s+(outfile|dumpfile)\\b",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_016",
+      "name": "Comment Injection",
+      "description": "Detects SQL comment injection",
+      "pattern": "(\\/\\*|\\*\\/|--\\s|#[^\\n]*$)",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["get", "post", "cookies"]
+    },
+    {
+      "id": "sqli_017",
+      "name": "HEX Encoded Attack",
+      "description": "Detects HEX encoded SQL injection",
+      "pattern": "0x[0-9a-f]{8,}",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_018",
+      "name": "CHAR() Obfuscation",
+      "description": "Detects CHAR() based obfuscation",
+      "pattern": "\\bchar\\s*\\(\\s*\\d+",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_019",
+      "name": "CONCAT() Function",
+      "description": "Detects suspicious CONCAT usage",
+      "pattern": "\\bconcat\\s*\\([^)]*select\\b",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_020",
+      "name": "GROUP_CONCAT() Function",
+      "description": "Detects GROUP_CONCAT data extraction",
+      "pattern": "\\bgroup_concat\\s*\\(",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_021",
+      "name": "EXTRACTVALUE/UPDATEXML",
+      "description": "Detects XML function based injection",
+      "pattern": "\\b(extractvalue|updatexml)\\s*\\(",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_022",
+      "name": "ORDER BY Injection",
+      "description": "Detects ORDER BY column enumeration",
+      "pattern": "\\border\\s+by\\s+\\d{2,}\\b",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_023",
+      "name": "HAVING Clause Injection",
+      "description": "Detects HAVING clause injection",
+      "pattern": "\\bhaving\\s+\\d+\\s*=\\s*\\d+",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_024",
+      "name": "Procedure Analyse",
+      "description": "Detects PROCEDURE ANALYSE() exploitation",
+      "pattern": "\\bprocedure\\s+analyse\\s*\\(",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "sqli_025",
+      "name": "Quote Escape Attempt",
+      "description": "Detects quote escape sequences",
+      "pattern": "(['\"])\\1{2,}|\\\\['\"]",
+      "severity": "low",
+      "enabled": true,
+      "contexts": ["any"]
+    }
+  ]
+}

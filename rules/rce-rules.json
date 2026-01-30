@@ -1,0 +1,232 @@
+{
+  "name": "Remote Code Execution Rules",
+  "version": "1.0.0",
+  "description": "Rules to detect RCE attempts",
+  "rules": [
+    {
+      "id": "rce_001",
+      "name": "PHP eval()",
+      "description": "Detects PHP eval() function usage",
+      "pattern": "\\beval\\s*\\(",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_002",
+      "name": "PHP assert()",
+      "description": "Detects PHP assert() function usage",
+      "pattern": "\\bassert\\s*\\(",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_003",
+      "name": "PHP create_function()",
+      "description": "Detects PHP create_function() usage",
+      "pattern": "\\bcreate_function\\s*\\(",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_004",
+      "name": "PHP preg_replace /e modifier",
+      "description": "Detects preg_replace with /e modifier",
+      "pattern": "preg_replace\\s*\\([^)]*\\/[^)]*e[^)]*\\)",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_005",
+      "name": "PHP system()",
+      "description": "Detects system() function usage",
+      "pattern": "\\bsystem\\s*\\(",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_006",
+      "name": "PHP exec()",
+      "description": "Detects exec() function usage",
+      "pattern": "\\bexec\\s*\\(",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_007",
+      "name": "PHP shell_exec()",
+      "description": "Detects shell_exec() function usage",
+      "pattern": "\\bshell_exec\\s*\\(",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_008",
+      "name": "PHP passthru()",
+      "description": "Detects passthru() function usage",
+      "pattern": "\\bpassthru\\s*\\(",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_009",
+      "name": "PHP popen()",
+      "description": "Detects popen() function usage",
+      "pattern": "\\bpopen\\s*\\(",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_010",
+      "name": "PHP proc_open()",
+      "description": "Detects proc_open() function usage",
+      "pattern": "\\bproc_open\\s*\\(",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_011",
+      "name": "Backtick Execution",
+      "description": "Detects backtick command execution",
+      "pattern": "`[^`]+`",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_012",
+      "name": "PHP call_user_func()",
+      "description": "Detects call_user_func() usage",
+      "pattern": "\\bcall_user_func(_array)?\\s*\\(",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_013",
+      "name": "PHP include/require",
+      "description": "Detects dynamic include/require",
+      "pattern": "\\b(include|require)(_once)?\\s*\\(",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_014",
+      "name": "Shell Command - wget",
+      "description": "Detects wget command injection",
+      "pattern": "\\bwget\\s+[^\\s]+",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_015",
+      "name": "Shell Command - curl",
+      "description": "Detects curl command injection",
+      "pattern": "\\bcurl\\s+-[^\\s]*[oO]",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_016",
+      "name": "Shell Command - nc/netcat",
+      "description": "Detects netcat command injection",
+      "pattern": "\\b(nc|netcat)\\s+-[^\\s]*[elp]",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_017",
+      "name": "Bash Reverse Shell",
+      "description": "Detects bash reverse shell attempt",
+      "pattern": "bash\\s+-i\\s+>&\\s*\\/dev\\/(tcp|udp)",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_018",
+      "name": "Python Command Execution",
+      "description": "Detects python os.system usage",
+      "pattern": "python[23]?\\s+-c\\s+['\"].*?(import|os|subprocess)",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_019",
+      "name": "Perl Command Execution",
+      "description": "Detects perl command execution",
+      "pattern": "perl\\s+-e\\s+['\"].*?(system|exec|`)",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_020",
+      "name": "Command Substitution $(...)",
+      "description": "Detects $() command substitution",
+      "pattern": "\\$\\([^)]+\\)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_021",
+      "name": "Variable Expansion ${...}",
+      "description": "Detects ${} variable expansion",
+      "pattern": "\\$\\{[^}]+\\}",
+      "severity": "medium",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_022",
+      "name": "Pipe Command Chain",
+      "description": "Detects piped command chain",
+      "pattern": "\\|\\s*(bash|sh|cat|wget|curl|nc)",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_023",
+      "name": "Semicolon Command Chain",
+      "description": "Detects semicolon command chaining",
+      "pattern": ";\\s*(ls|cat|id|whoami|wget|curl)\\b",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_024",
+      "name": "PHP ReflectionFunction",
+      "description": "Detects ReflectionFunction exploitation",
+      "pattern": "\\bReflectionFunction\\s*\\(",
+      "severity": "high",
+      "enabled": true,
+      "contexts": ["any"]
+    },
+    {
+      "id": "rce_025",
+      "name": "PHP unserialize()",
+      "description": "Detects potential unserialize exploitation",
+      "pattern": "\\bunserialize\\s*\\([^)]*\\$_(GET|POST|REQUEST|COOKIE)",
+      "severity": "critical",
+      "enabled": true,
+      "contexts": ["any"]
+    }
+  ]
+}
