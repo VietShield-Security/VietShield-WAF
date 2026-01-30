@@ -1,0 +1,70 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Composer
+vendor/
+composer.lock
+
+# Build files
+dist/
+build/
+*.min.js.map
+*.min.css.map
+
+# WordPress development
+wp-config.php
+wp-content/debug.log
+wp-content/uploads/
+wp-content/cache/
+wp-content/upgrade/
+wp-content/backup*/
+wp-content/w3tc-config/
+wp-content/advanced-cache.php
+wp-content/object-cache.php
+wp-content/db.php
+
+# VietShield WAF specific - Runtime generated files
+data/
+cache/
+logs/
+*.bin
+*.log
+
+# Sensitive files - never commit
+*.sql
+*.env
+.env.*
+credentials.php
+*-secrets.php
+
+# Test files
+tests/
+*.test.php
+phpunit.xml
+phpcs.xml
+.phpcs.xml
+
+# Documentation build
+docs/_build/
