@@ -53,6 +53,8 @@ class VietShield_Admin_Dashboard {
         add_action('wp_ajax_vietshield_clear_logs', [$this, 'ajax_clear_logs']);
         add_action('wp_ajax_vietshield_sync_ip_whitelist', [$this, 'ajax_sync_ip_whitelist']);
         add_action('wp_ajax_vietshield_check_plugin_update', [$this, 'ajax_check_plugin_update']);
+        add_action('wp_ajax_vietshield_perform_plugin_update', [$this, 'ajax_perform_plugin_update']);
+        add_action('wp_ajax_vietshield_retry_failed_threats', [$this, 'ajax_retry_failed_threats']);
         add_action('update_option_vietshield_options', [$this, 'handle_options_update'], 10, 2);
         
         // Show activation notice
@@ -1236,22 +1238,22 @@ class VietShield_Admin_Dashboard {
      */
     public function ajax_check_plugin_update() {
         check_ajax_referer('vietshield_admin', 'nonce');
-        
+
         if (!current_user_can('manage_options')) {
             wp_send_json_error('Unauthorized');
         }
-        
+
         // Force check for updates by calling the updater
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/class-plugin-updater.php';
         $updater = \VietShield\PluginUpdater::get_instance();
         $updater->force_check();
-        
+
         // Get the updated transient
         $update_transient = get_site_transient('update_plugins');
         $plugin_file = 'vietshield-waf/vietshield-waf.php';
         $has_update = isset($update_transient->response[$plugin_file]);
         $update_info = $has_update ? $update_transient->response[$plugin_file] : null;
-        
+
         if ($has_update && $update_info) {
             wp_send_json_success([
                 'has_update' => true,
@@ -1271,5 +1273,79 @@ class VietShield_Admin_Dashboard {
                 'message' => __('You are running the latest version.', 'vietshield-waf'),
             ]);
         }
+    }
+
+    /**
+     * AJAX: Perform plugin update
+     */
+    public function ajax_perform_plugin_update() {
+        check_ajax_referer('vietshield_admin', 'nonce');
+
+        if (!current_user_can('update_plugins')) {
+            wp_send_json_error(__('You do not have permission to update plugins.', 'vietshield-waf'));
+        }
+
+        $plugin_file = 'vietshield-waf/vietshield-waf.php';
+
+        // Verify there is actually an update available
+        $update_transient = get_site_transient('update_plugins');
+        if (!isset($update_transient->response[$plugin_file])) {
+            wp_send_json_error(__('No update available.', 'vietshield-waf'));
+        }
+
+        $new_version = $update_transient->response[$plugin_file]->new_version;
+
+        // Include required WordPress upgrade files
+        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+        require_once ABSPATH . 'wp-admin/includes/class-wp-ajax-upgrader-skin.php';
+
+        $skin = new \WP_Ajax_Upgrader_Skin();
+        $upgrader = new \Plugin_Upgrader($skin);
+        $result = $upgrader->upgrade($plugin_file);
+
+        if (is_wp_error($result)) {
+            wp_send_json_error($result->get_error_message());
+        }
+
+        if ($result === false) {
+            $errors = $skin->get_errors();
+            if (is_wp_error($errors) && $errors->has_errors()) {
+                wp_send_json_error($errors->get_error_message());
+            }
+            wp_send_json_error(__('Update failed. Please try again.', 'vietshield-waf'));
+        }
+
+        // Set a transient to show success modal after reload
+        set_transient('vietshield_update_success', $new_version, 60);
+
+        wp_send_json_success([
+            'new_version' => $new_version,
+            'message' => sprintf(
+                __('Successfully updated to v%s!', 'vietshield-waf'),
+                $new_version
+            ),
+        ]);
+    }
+
+    /**
+     * AJAX: Retry failed threat submissions
+     */
+    public function ajax_retry_failed_threats() {
+        check_ajax_referer('vietshield_admin', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-threats-sharing.php';
+        $reset_count = \VietShield\Firewall\ThreatsSharing::retry_failed();
+
+        wp_send_json_success([
+            'reset' => $reset_count,
+            'message' => sprintf(
+                __('%d failed IPs have been queued for retry.', 'vietshield-waf'),
+                $reset_count
+            ),
+        ]);
     }
 }

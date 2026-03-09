@@ -3,7 +3,7 @@ Contributors: vietshield
 Tags: security, firewall, waf, malware, protection
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 1.0.7
+Stable tag: 1.0.8
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -73,6 +73,13 @@ You can manually remove your IP from the `vietshield_ip_lists` database table us
 3.  **Live traffic logs**
 
 == Changelog ==
+
+= 1.0.8 =
+*   New: Modern UI redesign with new design system (design tokens, gradients, glassmorphism)
+*   New: In-page plugin update with confirmation dialog and success notification modal
+*   New: Retry Failed button for Threats Sharing queue
+*   Fixed: Threats Sharing queue logic incorrectly marking submitted IPs as failed
+*   Improved: Header, cards, tables, badges, buttons, modals, and responsive design across all pages
 
 = 1.0.7 =
 *   New: Googlebot Whitelist Card in Firewall page with Sync Now button and Show/Hide toggle

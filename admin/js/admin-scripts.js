@@ -1273,13 +1273,15 @@
                 
                 if (data.has_update) {
                     // Update available - show update button
-                    var html = '<p style="color: #f59e0b; margin: 0 0 10px;">' +
+                    var html = '<div class="vietshield-update-available">' +
+                        '<p style="color: #f59e0b; margin: 0 0 10px;">' +
                         '<span class="dashicons dashicons-warning"></span> ' +
-                        '<strong>' + escapeHtml(data.message) + '</strong>' +
+                        '<strong>Update available: v' + escapeHtml(data.current_version) + ' \u2192 v' + escapeHtml(data.new_version) + '</strong>' +
                         '</p>' +
-                        '<a href="' + escapeHtml(data.update_url) + '" class="button button-primary">' +
+                        '<button type="button" id="vietshield-update-now-btn" class="button button-primary" data-version="' + escapeHtml(data.new_version) + '">' +
                         '<span class="dashicons dashicons-update"></span> Update Now' +
-                        '</a>';
+                        '</button>' +
+                        '</div>';
                     $status.html(html);
                     $msg.text('New version found!').css('color', '#f59e0b');
                     showNotice('warning', data.message);
@@ -1300,6 +1302,78 @@
         }).fail(function () {
             $btn.prop('disabled', false).html(originalHtml);
             $msg.text('Request failed.').css('color', '#dc3232');
+            showNotice('error', 'Request failed. Please try again.');
+        });
+    });
+
+    // Update Now button - show confirmation modal
+    $(document).on('click', '#vietshield-update-now-btn', function (e) {
+        e.preventDefault();
+        var version = $(this).data('version');
+        $('#update-confirm-version').text(version);
+        $('#vietshield-update-confirm-modal').show();
+    });
+
+    // Confirm Update button - perform the update
+    $(document).on('click', '#vietshield-confirm-update-btn', function (e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var $modal = $('#vietshield-update-confirm-modal');
+
+        // Disable buttons and show progress
+        $btn.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Updating...');
+        $modal.find('.modal-close, .modal-close-btn').hide();
+        $modal.find('.modal-overlay').off('click');
+
+        $.post(vietshieldAdmin.ajaxUrl, {
+            action: 'vietshield_perform_plugin_update',
+            nonce: vietshieldAdmin.nonce
+        }, function (response) {
+            if (response.success) {
+                $btn.html('<span class="dashicons dashicons-yes"></span> Updated! Reloading...');
+                window.location.reload();
+            } else {
+                $btn.prop('disabled', false).html('<span class="dashicons dashicons-yes"></span> Yes, Update Now');
+                $modal.find('.modal-close, .modal-close-btn').show();
+                showNotice('error', response.data || 'Update failed. Please try again.');
+                $modal.hide();
+            }
+        }).fail(function () {
+            $btn.prop('disabled', false).html('<span class="dashicons dashicons-yes"></span> Yes, Update Now');
+            $modal.find('.modal-close, .modal-close-btn').show();
+            showNotice('error', 'Update request failed. Please try again.');
+            $modal.hide();
+        });
+    });
+
+    // Close modals
+    $(document).on('click', '.vietshield-modal .modal-close, .vietshield-modal .modal-close-btn', function () {
+        $(this).closest('.vietshield-modal').hide();
+    });
+    $(document).on('click', '.vietshield-modal .modal-overlay', function () {
+        $(this).closest('.vietshield-modal').hide();
+    });
+
+    // Retry failed threat submissions
+    $('#retry-failed-threats-btn').on('click', function (e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Retrying...');
+
+        $.post(vietshieldAdmin.ajaxUrl, {
+            action: 'vietshield_retry_failed_threats',
+            nonce: vietshieldAdmin.nonce
+        }, function (response) {
+            $btn.prop('disabled', false).html(originalHtml);
+            if (response.success) {
+                showNotice('success', response.data.message || 'Failed IPs queued for retry.');
+                $btn.closest('li').fadeOut(300);
+            } else {
+                showNotice('error', response.data || 'Failed to retry.');
+            }
+        }).fail(function () {
+            $btn.prop('disabled', false).html(originalHtml);
             showNotice('error', 'Request failed. Please try again.');
         });
     });

@@ -4,14 +4,14 @@
 **Tags:** security, firewall, waf, malware, protection  
 **Requires at least:** 5.0  
 **Tested up to:** 6.9  
-**Stable tag:** 1.0.7
+**Stable tag:** 1.0.8
 **Requires PHP:** 7.4
 **License:** GPLv2 or later
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
 High-performance Web Application Firewall for WordPress with real-time threat detection and blocking.
 
-**Version:** 1.0.7
+**Version:** 1.0.8
 **Web:** [https://vietshield.org](https://vietshield.org)  
 **Recommended Webserver:** Nginx/Openresty
 
@@ -171,6 +171,25 @@ You can get support through our [GitHub Issues](https://github.com/VietShield-Se
 ---
 
 ## 📝 Changelog
+
+### Version 1.0.8 (2026-03-09)
+**UI/UX Improvements:**
+- **Complete UI Redesign**: New design system with CSS custom properties, modern gradients, glassmorphism effects
+- Header: gradient `#0f172a → #1e293b → #312e81` with decorative radial overlays
+- Cards: 14px border-radius, hover shadow elevation, improved typography
+- Tables: separated borders, rounded headers, indigo-tinted hover rows
+- Badges: pill-style with subtle borders for attack types, severity, and actions
+- Buttons: gradient primary buttons with hover lift effect
+- Modals: backdrop blur, slide-in animation, 20px border-radius
+- Responsive: optimized 2-col stats on tablet, 1-col on mobile
+
+**New Features:**
+- **In-page Plugin Update**: Check for updates, view version info, confirm before updating, success congratulations modal after reload
+- **Retry Failed Threats**: Button to retry failed IP submissions in Threats Sharing queue
+
+**Bug Fixes:**
+- Fixed Threats Sharing `submit_queue()` logic: IPs silently accepted by API were incorrectly marked as failed (inverted success check to use failed list instead)
+- Fixed footer simplified to single line with tagline
 
 ### Version 1.0.7 (2026-01-30)
 **New Features:**

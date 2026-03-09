@@ -217,16 +217,18 @@ class ThreatsSharing {
         $failed_count = 0;
         
         if ($result['success']) {
-            $successful_ips = [];
-            if (isset($result['results']['success'])) {
-                foreach ($result['results']['success'] as $success_item) {
-                    $successful_ips[] = $success_item['ip'];
+            $failed_ips = [];
+            if (isset($result['results']['failed']) && is_array($result['results']['failed'])) {
+                foreach ($result['results']['failed'] as $fail_item) {
+                    if (isset($fail_item['ip'])) {
+                        $failed_ips[] = $fail_item['ip'];
+                    }
                 }
             }
-            
+
             foreach ($pending as $item) {
-                if (in_array($item['ip'], $successful_ips)) {
-                    // Mark as submitted
+                if (!in_array($item['ip'], $failed_ips)) {
+                    // Mark as submitted (either explicitly successful or silently accepted)
                     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
                     $wpdb->update(
                         $table,
@@ -241,18 +243,13 @@ class ThreatsSharing {
                     );
                     $submitted_count++;
                 } else {
-                    // Increment retry count
+                    // Increment retry count for explicitly failed IPs
                     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
-                    $wpdb->update(
-                        $table,
-                        [
-                            'retries' => $item['retries'] + 1,
-                            'updated_at' => current_time('mysql', 1)
-                        ],
-                        ['id' => $item['id']],
-                        ['%d', '%s'],
-                        ['%d']
-                    );
+                    $wpdb->query($wpdb->prepare(
+                        "UPDATE $table SET retries = retries + 1, updated_at = %s WHERE id = %d",
+                        current_time('mysql', 1),
+                        $item['id']
+                    ));
                     $failed_count++;
                 }
             }
@@ -513,23 +510,51 @@ class ThreatsSharing {
     }
     
     /**
+     * Retry failed threat submissions by resetting their retry count
+     *
+     * @return int Number of IPs reset for retry
+     */
+    public static function retry_failed() {
+        global $wpdb;
+        $table = $wpdb->prefix . self::QUEUE_TABLE;
+        if (!self::table_exists($table)) {
+            return 0;
+        }
+        $updated = $wpdb->query($wpdb->prepare(
+            "UPDATE $table SET retries = 0, updated_at = %s WHERE submitted = 0 AND retries >= %d",
+            current_time('mysql', 1),
+            self::MAX_RETRIES
+        ));
+        return (int) $updated;
+    }
+
+    /**
      * Clean up old submitted entries (older than 30 days)
      */
     public static function cleanup_old_entries() {
         global $wpdb;
-        
+
         $table = $wpdb->prefix . self::QUEUE_TABLE;
-        
+
         if (!self::table_exists($table)) {
             return;
         }
-        
+
         // Delete submitted entries older than 30 days
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query(
-            "DELETE FROM $table 
-             WHERE submitted = 1 
+            "DELETE FROM $table
+             WHERE submitted = 1
              AND submitted_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)"
         );
+
+        // Delete permanently failed entries older than 30 days
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM $table
+             WHERE submitted = 0 AND retries >= %d
+             AND updated_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)",
+            self::MAX_RETRIES
+        ));
     }
 }

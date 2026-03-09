@@ -1202,9 +1202,13 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                                     </li>
                                     <?php if ($vswaf_threats_stats['failed'] > 0): ?>
                                     <li>
-                                        <strong style="color: #dc3232;"><?php esc_html_e('Failed:', 'vietshield-waf'); ?></strong> 
+                                        <strong style="color: #dc3232;"><?php esc_html_e('Failed:', 'vietshield-waf'); ?></strong>
                                         <?php echo number_format($vswaf_threats_stats['failed']); ?>
                                         <span class="description"><?php esc_html_e('IPs that failed to submit (max retries reached)', 'vietshield-waf'); ?></span>
+                                        <button type="button" id="retry-failed-threats-btn" class="button button-small" style="margin-left: 10px;">
+                                            <span class="dashicons dashicons-update" style="font-size: 14px; width: 14px; height: 14px; margin-right: 3px; vertical-align: middle;"></span>
+                                            <?php esc_html_e('Retry Failed', 'vietshield-waf'); ?>
+                                        </button>
                                     </li>
                                     <?php endif; ?>
                                     <?php if ($vswaf_threats_stats['last_submission']): ?>
@@ -1322,14 +1326,13 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                                         <p style="color: #f59e0b; margin: 0 0 10px;">
                                             <span class="dashicons dashicons-warning"></span>
                                             <strong><?php
-                                            /* translators: %s: new version number */
-                                            printf(esc_html__('New version available: v%s', 'vietshield-waf'), esc_html($vswaf_update_info->new_version));
+                                            printf(esc_html__('Update available: v%1$s → v%2$s', 'vietshield-waf'), esc_html(VIETSHIELD_VERSION), esc_html($vswaf_update_info->new_version));
                                             ?></strong>
                                         </p>
-                                        <a href="<?php echo esc_url(admin_url('update-core.php')); ?>" class="button button-primary">
+                                        <button type="button" id="vietshield-update-now-btn" class="button button-primary" data-version="<?php echo esc_attr($vswaf_update_info->new_version); ?>">
                                             <span class="dashicons dashicons-update"></span>
                                             <?php esc_html_e('Update Now', 'vietshield-waf'); ?>
-                                        </a>
+                                        </button>
                                     <?php else: ?>
                                         <p style="color: #46b450; margin: 0;">
                                             <span class="dashicons dashicons-yes-alt"></span>
@@ -1353,6 +1356,72 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                             </td>
                         </tr>
                     </table>
+
+                    <!-- Update Confirmation Modal -->
+                    <div id="vietshield-update-confirm-modal" class="vietshield-modal" style="display:none;">
+                        <div class="modal-overlay"></div>
+                        <div class="modal-content" style="max-width: 480px;">
+                            <div class="modal-header">
+                                <h3><span class="dashicons dashicons-update"></span> <?php esc_html_e('Confirm Update', 'vietshield-waf'); ?></h3>
+                                <button class="modal-close" type="button">&times;</button>
+                            </div>
+                            <div class="modal-body" style="text-align: center; padding: 30px 20px;">
+                                <p style="font-size: 15px; margin-bottom: 5px;">
+                                    <?php esc_html_e('You are about to update VietShield WAF to', 'vietshield-waf'); ?>
+                                </p>
+                                <p style="font-size: 22px; font-weight: 700; color: var(--vs-primary, #4f46e5); margin: 10px 0 20px;">
+                                    v<span id="update-confirm-version"></span>
+                                </p>
+                                <p style="color: #64748b; font-size: 13px;">
+                                    <?php esc_html_e('The plugin will be temporarily deactivated during the update process. This usually takes a few seconds.', 'vietshield-waf'); ?>
+                                </p>
+                            </div>
+                            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: center;">
+                                <button type="button" class="button button-secondary modal-close-btn"><?php esc_html_e('Cancel', 'vietshield-waf'); ?></button>
+                                <button type="button" id="vietshield-confirm-update-btn" class="button button-primary">
+                                    <span class="dashicons dashicons-yes"></span>
+                                    <?php esc_html_e('Yes, Update Now', 'vietshield-waf'); ?>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Update Success Modal (shown after page reload) -->
+                    <?php
+                    $vswaf_update_success_version = get_transient('vietshield_update_success');
+                    if ($vswaf_update_success_version):
+                        delete_transient('vietshield_update_success');
+                    ?>
+                    <div id="vietshield-update-success-modal" class="vietshield-modal" style="display:none;">
+                        <div class="modal-overlay"></div>
+                        <div class="modal-content" style="max-width: 480px;">
+                            <div class="modal-header" style="background: linear-gradient(135deg, #059669, #10b981); color: #fff;">
+                                <h3 style="color: #fff;"><span class="dashicons dashicons-yes-alt"></span> <?php esc_html_e('Update Successful!', 'vietshield-waf'); ?></h3>
+                                <button class="modal-close" type="button" style="color: #fff;">&times;</button>
+                            </div>
+                            <div class="modal-body" style="text-align: center; padding: 30px 20px;">
+                                <div style="font-size: 48px; color: #10b981; margin-bottom: 15px;">&#10003;</div>
+                                <h2 style="margin: 0 0 10px; font-size: 20px;">
+                                    <?php esc_html_e('Congratulations!', 'vietshield-waf'); ?>
+                                </h2>
+                                <p style="font-size: 15px; color: #475569; margin-bottom: 5px;">
+                                    <?php esc_html_e('VietShield WAF has been successfully updated to', 'vietshield-waf'); ?>
+                                </p>
+                                <p style="font-size: 22px; font-weight: 700; color: #10b981; margin: 10px 0 0;">
+                                    v<?php echo esc_html($vswaf_update_success_version); ?>
+                                </p>
+                            </div>
+                            <div class="modal-footer" style="justify-content: center;">
+                                <button type="button" class="button button-primary modal-close-btn">
+                                    <span class="dashicons dashicons-yes"></span>
+                                    <?php esc_html_e('Great!', 'vietshield-waf'); ?>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <script>jQuery(function($){ $('#vietshield-update-success-modal').show(); });</script>
+                    <?php endif; ?>
+
                 </div>
             </div>
 
