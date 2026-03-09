@@ -247,7 +247,6 @@ class VietShield_Admin_Dashboard {
         
         // String options
         $sanitized['firewall_mode'] = sanitize_text_field($input['firewall_mode'] ?? 'protecting');
-        $sanitized['alert_email'] = sanitize_email($input['alert_email'] ?? '');
 
         // File scanner schedule
         $schedule = sanitize_text_field($input['file_scan_schedule'] ?? 'weekly');

@@ -6,20 +6,22 @@
     {
       "id": "lfi_001",
       "name": "Path Traversal - Basic",
-      "description": "Detects basic ../ path traversal",
-      "pattern": "\\.\\.\\/",
+      "description": "Detects repeated ../ path traversal (2+ levels)",
+      "pattern": "(\\.\\.\\/){2,}",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires 2+ consecutive ../ sequences - single ../ is too common in legitimate relative paths"
     },
     {
       "id": "lfi_002",
       "name": "Path Traversal - Backslash",
-      "description": "Detects ..\\ path traversal (Windows)",
-      "pattern": "\\.\\.\\\\",
+      "description": "Detects repeated ..\\ path traversal (Windows, 2+ levels)",
+      "pattern": "(\\.\\.\\\\.?){2,}",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires 2+ consecutive ..\\ sequences"
     },
     {
       "id": "lfi_003",
@@ -195,11 +197,12 @@
     {
       "id": "lfi_022",
       "name": "Absolute Path - Linux",
-      "description": "Detects absolute path with sensitive dirs",
-      "pattern": "^\\/?(etc|var|usr|root|home)\\/",
+      "description": "Detects absolute path to sensitive Linux system directories",
+      "pattern": "^\\/?(?:etc\\/(?:passwd|shadow|group|hosts|crontab|ssh|sudoers)|var\\/(?:log|mail|spool)|root\\/\\.(?:bash|ssh))",
       "severity": "medium",
       "enabled": true,
-      "contexts": ["get", "post"]
+      "contexts": ["get", "post"],
+      "_comment": "Narrowed: targets specific sensitive files/dirs instead of broad /etc/, /var/, /usr/, /home/ which match legitimate content paths"
     },
     {
       "id": "lfi_023",

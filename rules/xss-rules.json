@@ -24,38 +24,42 @@
     {
       "id": "xss_003",
       "name": "Event Handler - onload",
-      "description": "Detects onload event handler",
-      "pattern": "\\bon(load|error)\\s*=",
+      "description": "Detects onload/onerror event handler in HTML tag context",
+      "pattern": "<[^>]*\\bon(load|error)\\s*=",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires HTML tag context (<...on*=) to avoid matching form fields like 'onload_type=value'"
     },
     {
       "id": "xss_004",
       "name": "Event Handler - Mouse Events",
-      "description": "Detects mouse event handlers",
-      "pattern": "\\bon(mouse(over|out|move|down|up)|click|dblclick)\\s*=",
+      "description": "Detects mouse event handlers in HTML tag context",
+      "pattern": "<[^>]*\\bon(mouse(over|out|move|down|up)|click|dblclick)\\s*=",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires HTML tag context to avoid false positives on form data"
     },
     {
       "id": "xss_005",
       "name": "Event Handler - Keyboard Events",
-      "description": "Detects keyboard event handlers",
-      "pattern": "\\bon(key(down|up|press))\\s*=",
+      "description": "Detects keyboard event handlers in HTML tag context",
+      "pattern": "<[^>]*\\bon(key(down|up|press))\\s*=",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires HTML tag context"
     },
     {
       "id": "xss_006",
       "name": "Event Handler - Focus Events",
-      "description": "Detects focus event handlers",
-      "pattern": "\\bon(focus|blur|change|submit)\\s*=",
+      "description": "Detects focus event handlers in HTML tag context",
+      "pattern": "<[^>]*\\bon(focus|blur|change|submit)\\s*=",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires HTML tag context"
     },
     {
       "id": "xss_007",
@@ -140,30 +144,33 @@
     },
     {
       "id": "xss_016",
-      "name": "FORM Tag",
-      "description": "Detects form tag injection",
-      "pattern": "<form[^>]*>",
+      "name": "FORM Tag with action",
+      "description": "Detects form tag injection with action attribute",
+      "pattern": "<form[^>]*\\baction\\s*=\\s*['\"]?https?:",
       "severity": "medium",
       "enabled": true,
-      "contexts": ["get", "post"]
+      "contexts": ["get", "post"],
+      "_comment": "Narrowed: requires action= with URL to reduce false positives - bare <form> is too common in HTML snippets"
     },
     {
       "id": "xss_017",
       "name": "STYLE Expression",
-      "description": "Detects CSS expression() usage",
-      "pattern": "expression\\s*\\(",
+      "description": "Detects CSS expression() in style context",
+      "pattern": "(?:style\\s*=|<style)[^>]*expression\\s*\\(",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires style attribute or tag context since 'expression(' alone matches legitimate code"
     },
     {
       "id": "xss_018",
       "name": "Eval Function",
-      "description": "Detects eval() function usage",
-      "pattern": "\\beval\\s*\\(",
+      "description": "Detects eval() in JavaScript injection context",
+      "pattern": "(?:<script|javascript\\s*:|on\\w+\\s*=)[^>]*\\beval\\s*\\(",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires script/javascript/event-handler context since bare eval() matches too many legitimate inputs"
     },
     {
       "id": "xss_019",

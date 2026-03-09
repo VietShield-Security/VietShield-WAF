@@ -96,11 +96,12 @@
     {
       "id": "rce_011",
       "name": "Backtick Execution",
-      "description": "Detects backtick command execution",
-      "pattern": "`[^`]+`",
+      "description": "Detects backtick command execution with shell commands",
+      "pattern": "`\\s*(ls|cat|id|whoami|uname|pwd|wget|curl|nc|bash|sh|python|perl|rm|chmod|chown|kill|ps|netstat|ifconfig|nslookup|ping|find|grep)[^`]*`",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires known shell command inside backticks - bare backticks match Markdown and template literals"
     },
     {
       "id": "rce_012",
@@ -113,12 +114,13 @@
     },
     {
       "id": "rce_013",
-      "name": "PHP include/require",
-      "description": "Detects dynamic include/require",
-      "pattern": "\\b(include|require)(_once)?\\s*\\(",
+      "name": "PHP include/require with user input",
+      "description": "Detects dynamic include/require with user-controlled input",
+      "pattern": "\\b(include|require)(_once)?\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE|SERVER)",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: only flags include/require when combined with superglobal user input variables to avoid matching legitimate PHP code"
     },
     {
       "id": "rce_014",
@@ -177,20 +179,22 @@
     {
       "id": "rce_020",
       "name": "Command Substitution $(...)",
-      "description": "Detects $() command substitution",
-      "pattern": "\\$\\([^)]+\\)",
+      "description": "Detects $() command substitution with shell commands",
+      "pattern": "\\$\\(\\s*(ls|cat|id|whoami|uname|pwd|wget|curl|nc|bash|sh|python|perl|rm|chmod|chown|kill|ps|netstat|ifconfig|nslookup|ping|find|grep|awk|sed|echo|printf|env|export|set)\\b",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires known shell command inside $() - bare $() matches legitimate content like jQuery and template syntax"
     },
     {
       "id": "rce_021",
       "name": "Variable Expansion ${...}",
-      "description": "Detects ${} variable expansion",
-      "pattern": "\\$\\{[^}]+\\}",
+      "description": "Detects ${} variable expansion with shell-specific patterns",
+      "pattern": "\\$\\{\\s*(IFS|PATH|SHELL|HOME|USER|BASH|HOSTNAME|RANDOM|LINENO|SECONDS|SHLVL|LD_|DYLD_)[^}]*\\}",
       "severity": "medium",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: only matches shell-specific environment variables - generic ${var} is used everywhere (JS templates, PHP, etc.)"
     },
     {
       "id": "rce_022",

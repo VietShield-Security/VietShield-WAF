@@ -64,24 +64,48 @@ class RequestAnalyzer {
     }
     
     /**
+     * WordPress parameter keys that should be excluded from WAF scanning
+     * These contain legitimate content (HTML editors, code, encoded data) that
+     * would cause false positives if scanned.
+     */
+    private static $wp_excluded_params = [
+        'content',           // Post content (TinyMCE/Gutenberg editor)
+        'post_content',      // Post content field
+        'comment',           // Comment text
+        'description',       // Term/user description
+        'excerpt',           // Post excerpt
+        'post_excerpt',      // Post excerpt field
+        'widget-text',       // Text widget
+        'customized',        // Customizer data (JSON encoded)
+        '_wp_http_referer',  // WordPress nonce referer
+        'wp_autosave',       // Autosave data
+        'acf',               // Advanced Custom Fields data
+        'meta',              // Meta fields
+    ];
+
+    /**
      * Get and sanitize GET parameters
      */
     private function get_get_params() {
         $params = [];
-        
+
         foreach ($_GET as $key => $value) {
+            // Skip WordPress excluded parameters to avoid false positives
+            if (in_array($key, self::$wp_excluded_params, true)) {
+                continue;
+            }
             $params[$key] = $this->normalize_value($value);
         }
-        
+
         return $params;
     }
-    
+
     /**
      * Get and sanitize POST parameters
      */
     private function get_post_params() {
         $params = [];
-        
+
         // Handle JSON body
         $content_type = $this->get_content_type();
         if (strpos($content_type, 'application/json') !== false) {
@@ -91,12 +115,17 @@ class RequestAnalyzer {
                 return $this->normalize_array($json);
             }
         }
-        
+
         // Handle regular POST
         foreach ($_POST as $key => $value) {
+            // Skip WordPress excluded parameters to avoid false positives
+            // on editor content, customizer data, etc.
+            if (in_array($key, self::$wp_excluded_params, true)) {
+                continue;
+            }
             $params[$key] = $this->normalize_value($value);
         }
-        
+
         return $params;
     }
     
@@ -256,24 +285,37 @@ class RequestAnalyzer {
     
     /**
      * Normalize a value (recursive for arrays)
+     *
+     * Note: PHP already URL-decodes $_GET/$_POST values automatically.
+     * We only decode once more to catch double-encoded attacks, but we do NOT
+     * apply html_entity_decode aggressively as it can transform legitimate
+     * content (e.g., "&lt;script&gt;" in a blog comment) into attack patterns.
      */
     private function normalize_value($value) {
         if (is_array($value)) {
             return $this->normalize_array($value);
         }
-        
-        // Decode URL encoded values
-        $value = urldecode($value);
-        
-        // Decode HTML entities
-        $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        
+
+        // Single URL decode pass to catch double-encoded attacks
+        // (PHP already decoded once; this catches %2527 -> %27 -> ' type attacks)
+        $decoded = urldecode($value);
+        // Only use the decoded version if it actually changed (indicates double encoding)
+        if ($decoded !== $value) {
+            $value = $decoded;
+        }
+
+        // Only decode numeric HTML entities and common attack-relevant entities
+        // Do NOT decode all HTML entities - this prevents turning already-escaped
+        // safe content like &lt;script&gt; into <script> which triggers XSS rules
+        $value = preg_replace('/&#x([0-9a-fA-F]+);/', '', $value);
+        $value = preg_replace('/&#(\d+);/', '', $value);
+
         // Remove null bytes
         $value = str_replace(chr(0), '', $value);
-        
+
         // Normalize whitespace
         $value = preg_replace('/\s+/', ' ', $value);
-        
+
         return $value;
     }
     

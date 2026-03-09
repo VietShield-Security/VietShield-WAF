@@ -34,7 +34,7 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
     <div class="vietshield-header">
         <div class="vietshield-logo">
             <span class="dashicons dashicons-shield"></span>
-            <h1><?php esc_html_e('VietShield WAF Settings', 'vietshield-waf'); ?> <span style="font-size: 13px; color: #666; font-weight: 400; margin-left: 8px;">v<?php echo esc_html(VIETSHIELD_VERSION); ?></span></h1>
+            <h1><?php esc_html_e('VietShield WAF Settings', 'vietshield-waf'); ?></h1>
         </div>
         <div class="vietshield-header-actions">
             <button type="submit" form="vietshield-settings-form" class="button button-primary">
@@ -153,10 +153,10 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                                 <p class="description"><?php esc_html_e('Receive email notifications for critical security events.', 'vietshield-waf'); ?></p>
                                 
                                 <div class="dependent-field" style="margin-top: 10px;">
-                                    <input type="email" name="vietshield_options[alert_email]" 
-                                           value="<?php echo esc_attr($vswaf_options['alert_email'] ?? get_option('admin_email')); ?>" 
-                                           class="regular-text" placeholder="admin@example.com">
-                                    <p class="description"><?php esc_html_e('Email address to send alerts to.', 'vietshield-waf'); ?></p>
+                                    <code><?php echo esc_html(get_option('admin_email')); ?></code>
+                                    <p class="description">
+                                        <?php esc_html_e('Email alerts are sent to the WordPress admin email address. You can change it in Settings → General.', 'vietshield-waf'); ?>
+                                    </p>
                                 </div>
                             </td>
                         </tr>

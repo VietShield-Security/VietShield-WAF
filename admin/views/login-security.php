@@ -12,7 +12,7 @@ $vswaf_options = get_option('vietshield_options', []);
     <div class="vietshield-header">
         <div class="vietshield-logo">
             <span class="dashicons dashicons-lock"></span>
-            <h1><?php esc_html_e('Login Security', 'vietshield-waf'); ?> <span style="font-size: 13px; color: #666; font-weight: 400; margin-left: 8px;">v<?php echo esc_html(VIETSHIELD_VERSION); ?></span></h1>
+            <h1><?php esc_html_e('Login Security', 'vietshield-waf'); ?></h1>
         </div>
         <div class="vietshield-status">
             <?php 

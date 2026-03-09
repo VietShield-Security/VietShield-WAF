@@ -13,7 +13,7 @@ $vswaf_top_ips = $top_ips ?? [];
     <div class="vietshield-header">
         <div class="vietshield-logo">
             <span class="dashicons dashicons-shield"></span>
-            <h1><?php esc_html_e('VietShield WAF', 'vietshield-waf'); ?> <span style="font-size: 13px; color: #666; font-weight: 400; margin-left: 8px;">v<?php echo esc_html(VIETSHIELD_VERSION); ?></span></h1>
+            <h1><?php esc_html_e('VietShield WAF', 'vietshield-waf'); ?></h1>
         </div>
         <div class="vietshield-status">
             <?php if ($this->options['waf_enabled'] ?? true): ?>

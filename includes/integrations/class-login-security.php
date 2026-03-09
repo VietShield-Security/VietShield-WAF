@@ -324,7 +324,7 @@ class LoginSecurity {
      * Send failed login notification
      */
     private function send_failed_login_notification($ip, $username) {
-        $email = $this->get_option('alert_email', get_option('admin_email'));
+        $email = get_option('admin_email');
         $threshold = $this->get_option('login_notification_threshold', 3);
         
         $failed_count = $this->get_failed_attempts_count($ip);

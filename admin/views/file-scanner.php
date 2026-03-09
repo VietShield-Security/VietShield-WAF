@@ -12,7 +12,7 @@ $vswaf_schedule = $vswaf_options['file_scan_schedule'] ?? 'weekly';
     <div class="vietshield-header">
         <div class="vietshield-logo">
             <span class="dashicons dashicons-shield-alt"></span>
-            <h1><?php esc_html_e('File Scanner', 'vietshield-waf'); ?> <span style="font-size: 13px; color: #666; font-weight: 400; margin-left: 8px;">v<?php echo esc_html(VIETSHIELD_VERSION); ?></span></h1>
+            <h1><?php esc_html_e('File Scanner', 'vietshield-waf'); ?></h1>
         </div>
         <div class="vietshield-status">
             <?php if ($vswaf_enabled): ?>

@@ -15,20 +15,22 @@
     {
       "id": "sqli_002",
       "name": "OR/AND Boolean Injection",
-      "description": "Detects OR/AND based boolean SQL injection",
-      "pattern": "(['\"]?)\\s*\\b(or|and)\\b\\s*['\"]?\\d+['\"]?\\s*[=<>]+\\s*['\"]?\\d+",
+      "description": "Detects OR/AND based boolean SQL injection after quote context",
+      "pattern": "['\"]\\s*\\b(or|and)\\b\\s+['\"]?\\d+['\"]?\\s*[=<>!]+\\s*['\"]?\\d+",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires leading quote to indicate SQL string breakout context"
     },
     {
       "id": "sqli_003",
       "name": "Classic OR 1=1",
-      "description": "Detects classic OR 1=1 injection",
-      "pattern": "['\"]\\s*(or|and)\\s*['\"]?1['\"]?\\s*=\\s*['\"]?1",
+      "description": "Detects classic OR 1=1 injection requiring quote breakout",
+      "pattern": "['\"]\\s*(or|and)\\s+['\"]?1['\"]?\\s*=\\s*['\"]?1",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires leading quote to reduce false positives on normal text"
     },
     {
       "id": "sqli_004",
@@ -141,11 +143,12 @@
     {
       "id": "sqli_016",
       "name": "Comment Injection",
-      "description": "Detects SQL comment injection",
-      "pattern": "(\\/\\*|\\*\\/|--\\s|#[^\\n]*$)",
+      "description": "Detects SQL comment injection only after SQL keyword context",
+      "pattern": "(?:\\b(?:select|union|insert|update|delete|drop|from|where|having|order|group)\\b[^;]{0,80})(--\\s|\\*\\/|\\/\\*!)",
       "severity": "medium",
       "enabled": true,
-      "contexts": ["get", "post", "cookies"]
+      "contexts": ["get", "post", "cookies"],
+      "_comment": "Narrowed: only matches SQL comment syntax when preceded by SQL keywords to avoid false positives on normal text with --, #, or comments"
     },
     {
       "id": "sqli_017",
@@ -195,11 +198,12 @@
     {
       "id": "sqli_022",
       "name": "ORDER BY Injection",
-      "description": "Detects ORDER BY column enumeration",
-      "pattern": "\\border\\s+by\\s+\\d{2,}\\b",
+      "description": "Detects ORDER BY column enumeration with high column numbers or followed by SQL comment/injection",
+      "pattern": "\\border\\s+by\\s+\\d{2,}\\s*(--.?|#|/\\*|,\\s*\\d+)",
       "severity": "medium",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["get", "post"],
+      "_comment": "Narrowed: requires ORDER BY with 2+ digit number AND SQL comment or additional columns to reduce false positives"
     },
     {
       "id": "sqli_023",
@@ -225,8 +229,9 @@
       "description": "Detects quote escape sequences",
       "pattern": "(['\"])\\1{2,}|\\\\['\"]",
       "severity": "low",
-      "enabled": true,
-      "contexts": ["any"]
+      "enabled": false,
+      "contexts": ["any"],
+      "_comment": "Disabled: too broad - backslash-quote and repeated quotes appear in normal content (JSON, escaped strings, etc.)"
     }
   ]
 }

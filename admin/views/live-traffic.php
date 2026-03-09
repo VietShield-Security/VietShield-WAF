@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
     <div class="vietshield-header">
         <div class="vietshield-logo">
             <span class="dashicons dashicons-shield"></span>
-            <h1><?php esc_html_e('Live Traffic', 'vietshield-waf'); ?> <span style="font-size: 13px; color: #666; font-weight: 400; margin-left: 8px;">v<?php echo esc_html(VIETSHIELD_VERSION); ?></span></h1>
+            <h1><?php esc_html_e('Live Traffic', 'vietshield-waf'); ?></h1>
         </div>
         <div class="header-actions">
             <button id="toggle-live" class="button button-primary">

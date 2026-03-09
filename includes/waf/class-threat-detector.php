@@ -162,27 +162,27 @@ class ThreatDetector {
     private function detect_sqli_builtin($value) {
         $patterns = [
             // Union based
-            '/\bunion\b.*\bselect\b/is',
-            '/\bunion\b.*\ball\b.*\bselect\b/is',
-            
-            // Error based
-            '/\bor\b.*[\'"]?\d+[\'"]?\s*=\s*[\'"]?\d+/is',
-            '/\band\b.*[\'"]?\d+[\'"]?\s*=\s*[\'"]?\d+/is',
-            '/[\'"]\s*or\s*[\'"]?\d+[\'"]?\s*=\s*[\'"]?\d+/is',
-            
+            '/\bunion\b[\s\/\*]+\bselect\b/is',
+            '/\bunion\b[\s\/\*]+\ball\b[\s\/\*]+\bselect\b/is',
+
+            // Error based - narrowed to require quote context (SQL string breakout)
+            '/[\'\"]\s*\bor\b\s+[\'"]?\d+[\'"]?\s*=\s*[\'"]?\d+/is',
+            '/[\'\"]\s*\band\b\s+[\'"]?\d+[\'"]?\s*=\s*[\'"]?\d+/is',
+
             // Stacked queries
             '/;\s*(drop|truncate|delete|insert|update|create|alter)\b/is',
-            
-            // Comment injection
-            '/(\/\*|\*\/|--\s|#.*$)/m',
-            
+
+            // Comment injection - only after SQL keywords to reduce false positives
+            // Removed overly broad '/(\/\*|\*\/|--\s|#.*$)/m' pattern
+            '/\b(select|union|insert|update|delete|drop|from|where)\b[^;]{0,80}(--\s|\/\*!)/is',
+
             // Common payloads
             '/\bsleep\s*\(\s*\d+\s*\)/is',
             '/\bbenchmark\s*\(/is',
             '/\bwaitfor\s+delay\b/is',
             '/\bload_file\s*\(/is',
             '/\binto\s+(out|dump)file\b/is',
-            
+
             // Information schema
             '/information_schema\./is',
             '/\bsys\.(databases|tables|columns)\b/is',
@@ -245,29 +245,30 @@ class ThreatDetector {
             // Script tags
             '/<script[^>]*>.*?<\/script>/is',
             '/<script[^>]*>/is',
-            
-            // Event handlers
-            '/\bon\w+\s*=\s*["\']?[^"\']+["\']?/is',
-            '/\bon(load|error|click|mouse|focus|blur|key|submit|change|input)\s*=/is',
-            
+
+            // Event handlers - require HTML tag context to avoid matching form data
+            // Removed overly broad '/\bon\w+\s*=\s*["\']?[^"\']+["\']?/is'
+            '/<[^>]*\bon(load|error|click|mouse\w*|focus|blur|key\w*|submit|change|input)\s*=/is',
+
             // JavaScript protocol
             '/javascript\s*:/is',
             '/vbscript\s*:/is',
-            '/data\s*:.*base64/is',
-            
-            // SVG/XML attacks
-            '/<svg[^>]*onload/is',
-            '/<img[^>]*onerror/is',
+            '/data\s*:[^,]*;base64/is',
+
+            // SVG/XML attacks - specific tag + handler combos
+            '/<svg[^>]*\bon\w+\s*=/is',
+            '/<img[^>]*\bon(error|load)\s*=/is',
+
+            // Dangerous tags in user input
             '/<iframe[^>]*>/is',
             '/<object[^>]*>/is',
             '/<embed[^>]*>/is',
-            
-            // Expression/eval
-            '/expression\s*\(/is',
-            '/eval\s*\(/is',
-            
-            // HTML injection
-            '/<(script|img|svg|body|iframe|object|embed|link|style|meta|base|form|input|button)[^>]*>/is',
+
+            // Expression in style context only
+            '/(?:style\s*=|<style)[^>]*expression\s*\(/is',
+
+            // HTML injection - narrowed to most dangerous tags only
+            '/<(script|iframe|object|embed|base|meta\s+http-equiv)[^>]*>/is',
         ];
         
         foreach ($patterns as $pattern) {
@@ -371,18 +372,23 @@ class ThreatDetector {
      */
     private function detect_rce_builtin($value) {
         $patterns = [
-            // PHP functions
-            '/\b(eval|assert|preg_replace|create_function|call_user_func|call_user_func_array)\s*\(/is',
+            // PHP dangerous functions - eval/assert/create_function are always suspicious in request data
+            '/\b(eval|assert|create_function)\s*\(/is',
+            // Shell execution functions - only flag in request data (not file scanning)
             '/\b(system|exec|shell_exec|passthru|popen|proc_open)\s*\(/is',
-            '/\b(include|include_once|require|require_once)\s*\(/is',
-            '/`[^`]+`/',
-            
-            // Shell commands
+            // include/require only with user input superglobals
+            '/\b(include|include_once|require|require_once)\s*\(?\s*\$_(GET|POST|REQUEST|COOKIE)/is',
+            // Backticks - only with known shell commands inside
+            '/`\s*(ls|cat|id|whoami|uname|pwd|wget|curl|nc|bash|sh|python|perl|rm|chmod|find|grep)\b[^`]*`/',
+
+            // Shell commands via injection operators
             '/;\s*(ls|cat|wget|curl|nc|netcat|bash|sh|python|perl|ruby|php)\b/is',
             '/\|\s*(ls|cat|wget|curl|nc|netcat|bash|sh)\b/is',
-            '/\$\([^)]+\)/',
-            '/\$\{[^}]+\}/',
-            
+            // Command substitution - only with known shell commands
+            '/\$\(\s*(ls|cat|id|whoami|uname|pwd|wget|curl|nc|bash|sh|python|perl|rm|chmod|find|grep|awk|sed)\b/is',
+            // Variable expansion - only with shell-specific env vars
+            '/\$\{(IFS|PATH|SHELL|HOME|USER|BASH|HOSTNAME)\}/is',
+
             // Reverse shells
             '/bash\s+-i\s+>&\s+\/dev\/tcp/is',
             '/nc\s+-e\s+\/bin\/(ba)?sh/is',
@@ -654,18 +660,19 @@ class ThreatDetector {
         }
         
         // Regex patterns for security scanners and bots (from Lua WAF)
+        // Note: generic terms like 'scanner', 'crawler', 'spider' removed to avoid
+        // false positives on legitimate bots (Googlebot, Bingbot, etc.) and SEO tools
         $regex_patterns = [
-            // Security scanners
-            '/(?i)(BabyKrokodil|netsparker|httperf|bench)/',
-            '/(?i)(Parser|libwww|BBBike|fimap|havij)/',
-            '/(?i)(burp|zap|acunetix|netsparker|appscan)/',
+            // Known malicious scanners/tools (specific names only)
+            '/(?i)(BabyKrokodil|netsparker|httperf)/',
+            '/(?i)(libwww-perl|BBBike|fimap|havij)/',
+            '/(?i)(burp|zaproxy|acunetix|appscan)/',
             '/(?i)(censys|shodan|zoomeye|binaryedge|onyphe|fofa)/',
-            '/(?i)(harvest|audit|dirbuster|pangolin|hydra)/',
-            '/(?i)(masscan|nessus|openvas|qualys)/',
-            '/(?i)(masscan|nmap|zmap)/',
-            '/(?i)(scanner|scan|spider|crawler)/',
-            '/(?i)(sqlmap|nikto|nuclei|wpscan|w3af|owasp)/',
-            '/(HTTrack|harvest|audit|dirbuster|pangolin|nmap|sqln|-scan|hydra|Parser|libwww|BBBike|sqlmap|w3af|owasp|Nikto|fimap|havij|PycURL|zmeu|BabyKrokodil|netsparker|httperf|bench)/',
+            '/(?i)(dirbuster|pangolin|hydra)/',
+            '/(?i)(masscan|nessus|openvas)/',
+            '/(?i)(nmap|zmap)/',
+            '/(?i)(sqlmap|nikto|nuclei|wpscan|w3af)/',
+            '/(HTTrack|dirbuster|pangolin|sqln|hydra|BBBike|sqlmap|w3af|Nikto|fimap|havij|PycURL|zmeu|BabyKrokodil|netsparker|httperf)/',
         ];
         
         foreach ($regex_patterns as $pattern) {
@@ -682,22 +689,17 @@ class ThreatDetector {
             }
         }
         
-        // Literal string matches (from Lua WAF)
+        // Literal string matches - only known malicious tools
+        // Removed legitimate HTTP clients: curl/, Wget/, python-requests/,
+        // Go-http-client/, Java/, Apache-HttpClient/, PostmanRuntime/, okhttp/
+        // These are widely used for legitimate API calls and monitoring
         $literal_patterns = [
-            'Apache-HttpClient/',
-            'Go-http-client/',
             'HTTrack/',
-            'Java/',
-            'PostmanRuntime/',
             'PycURL/',
-            'Wget/',
             'ZmEu',
-            'curl/',
             'libwww-perl/',
-            'okhttp/',
-            'python-requests/',
             'HeadlessChrome/',
-            // Additional common bad bots
+            // Specific malicious tools
             'masscan',
             'zgrab',
             'gobuster',
@@ -765,8 +767,9 @@ class ThreatDetector {
             ['pattern' => '/(?i)&&\s*(rm|cat|ls|pwd|whoami|uname|ps|kill)\s/', 'name' => 'Command Injection (double ampersand)', 'type' => 'rce'],
             // Specific pattern for 'id' command - must be followed by space, semicolon, pipe, or end (not =)
             ['pattern' => '/(?i)[;&|]\s*id(\s|;|\||$)/', 'name' => 'Command Injection (id command)', 'type' => 'rce'],
-            ['pattern' => '/(?i)\$\([^)]*\)/', 'name' => 'Command Substitution', 'type' => 'rce'],
-            ['pattern' => '/`[^`]+`/', 'name' => 'Backtick Command Execution', 'type' => 'rce'],
+            // Narrowed: require known shell commands inside $() and backticks
+            ['pattern' => '/(?i)\$\(\s*(ls|cat|id|whoami|uname|pwd|wget|curl|nc|bash|sh|python|perl|rm|chmod|find|grep|awk|sed)\b/', 'name' => 'Command Substitution', 'type' => 'rce'],
+            ['pattern' => '/`\s*(ls|cat|id|whoami|uname|pwd|wget|curl|nc|bash|sh|python|perl|rm|chmod|find|grep)\b[^`]*`/', 'name' => 'Backtick Command Execution', 'type' => 'rce'],
             
             // SQL injection (additional from Lua)
             ['pattern' => '/(?i)\binto\s+(outfile|dumpfile)\b/', 'name' => 'SQL File Write', 'type' => 'sqli'],
