@@ -337,17 +337,26 @@ class PluginUpdater {
         $version = ltrim($data['tag_name'], 'vV');
         
         // Find the ZIP asset
+        // Asset naming convention: vietshield-waf.zip or vietshield-waf-v{version}.zip
         $download_url = null;
         if (!empty($data['assets']) && is_array($data['assets'])) {
             foreach ($data['assets'] as $asset) {
-                if (isset($asset['name']) && $asset['name'] === 'vietshield-waf.zip') {
+                if (!isset($asset['name'])) {
+                    continue;
+                }
+                $name = $asset['name'];
+                // Match exact name or versioned name pattern
+                if ($name === 'vietshield-waf.zip' ||
+                    preg_match('/^vietshield-waf[-_]v?[\d.]+\.zip$/i', $name)) {
                     $download_url = $asset['browser_download_url'];
                     break;
                 }
             }
         }
-        
+
         // Fallback to zipball_url if no asset found
+        // Note: zipball creates folder like "User-Repo-hash/" which may cause
+        // plugin directory name mismatch. The uploaded asset is preferred.
         if (!$download_url && !empty($data['zipball_url'])) {
             $download_url = $data['zipball_url'];
         }

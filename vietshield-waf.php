@@ -3,7 +3,7 @@
  * Plugin Name: VietShield WAF
  * Plugin URI: https://vietshield.org
  * Description: High-performance Web Application Firewall (WAF) for WordPress. Protects against SQL Injection, XSS, RCE, and more with advanced traffic analysis and real-time blocking.
- * Version: 1.0.8
+ * Version: 1.0.9
  * Author: VietShield Security
  * Author URI: https://github.com/VietShield-Security
  * License: GPL v2 or later
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('VIETSHIELD_VERSION', '1.0.8');
+define('VIETSHIELD_VERSION', '1.0.9');
 define('VIETSHIELD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('VIETSHIELD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('VIETSHIELD_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -303,15 +303,7 @@ add_action('vietshield_sync_ip_metadata', function () {
  * Ensure cron jobs are scheduled (Auto-repair)
  */
 add_action('init', function () {
-    // Threats Sharing - Update to 5 minutes interval
-    // Clear any existing scheduled events with old interval
-    $timestamp = wp_next_scheduled('vietshield_submit_threats');
-    if ($timestamp !== false) {
-        wp_unschedule_event($timestamp, 'vietshield_submit_threats');
-    }
-    // Clear all scheduled events for this hook (in case of duplicates)
-    wp_clear_scheduled_hook('vietshield_submit_threats');
-    // Schedule with new 5-minute interval
+    // Threats Sharing - Ensure scheduled (auto-repair only if missing)
     if (!wp_next_scheduled('vietshield_submit_threats')) {
         wp_schedule_event(time(), 'vietshield_5minutes', 'vietshield_submit_threats');
     }

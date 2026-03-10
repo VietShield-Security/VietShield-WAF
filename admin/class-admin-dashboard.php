@@ -62,12 +62,31 @@ class VietShield_Admin_Dashboard {
             add_action('admin_notices', [$this, 'activation_notice']);
             delete_transient('vietshield_activated');
         }
+
+        // Hide other plugins' admin notices on VietShield pages
+        add_action('admin_head', [$this, 'hide_external_notices']);
         
         // Trigger threat intelligence initial sync on first admin page load after activation
         // Use priority 5 to run early but after WordPress is fully loaded
         add_action('admin_init', [$this, 'maybe_sync_threat_intel'], 5);
     }
     
+    /**
+     * Hide other plugins' admin notices on VietShield pages
+     */
+    public function hide_external_notices() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Just reading page name
+        $current_page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
+        if (strpos($current_page, 'vietshield') === false) {
+            return;
+        }
+
+        remove_all_actions('admin_notices');
+        remove_all_actions('all_admin_notices');
+        remove_all_actions('network_admin_notices');
+        remove_all_actions('user_admin_notices');
+    }
+
     /**
      * Add admin menu
      */
@@ -805,17 +824,20 @@ class VietShield_Admin_Dashboard {
             \VietShield\Firewall\ThreatIntelligence::schedule_sync($new_category);
         }
         
+        // Track if we need to re-save options
+        $needs_update = false;
+
         // Auto-enable Whitelist Admins when WAF is enabled
         $old_waf_enabled = !empty($old_value['waf_enabled']);
         $new_waf_enabled = !empty($value['waf_enabled']);
-        
+
         if ($new_waf_enabled && !$old_waf_enabled) {
-            // WAF was just enabled, auto-enable whitelist_admins
             if (empty($value['whitelist_admins'])) {
                 $value['whitelist_admins'] = true;
+                $needs_update = true;
             }
         }
-        
+
         // Handle firewall mode changes
         $old_mode = $old_value['firewall_mode'] ?? 'protecting';
         $new_mode = $value['firewall_mode'] ?? 'protecting';
@@ -826,27 +848,19 @@ class VietShield_Admin_Dashboard {
         if ($new_mode === 'extended') {
             $new_mode = 'protecting';
         }
-        
-        // Auto-enable/disable early blocking based on firewall mode
-        $needs_update = false;
-        if ($new_mode === 'extended') {
+
+        // Auto-enable early blocking when switching to protecting mode
+        if ($new_mode === 'protecting' && $old_mode !== 'protecting') {
             if (empty($value['early_blocking_enabled'])) {
                 $value['early_blocking_enabled'] = true;
                 $needs_update = true;
             }
-        } else {
-            if (!empty($value['early_blocking_enabled'])) {
-                $value['early_blocking_enabled'] = false;
-                $needs_update = true;
-            }
         }
-        
-        // Only update if early_blocking_enabled changed to avoid infinite loop
+
+        // Persist changes if needed
         if ($needs_update) {
-            // Remove hook temporarily to prevent infinite loop
             remove_action('update_option_vietshield_options', [$this, 'handle_options_update'], 10);
             update_option('vietshield_options', $value);
-            // Re-add hook
             add_action('update_option_vietshield_options', [$this, 'handle_options_update'], 10, 2);
         }
         

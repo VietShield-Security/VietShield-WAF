@@ -318,19 +318,17 @@ class EarlyBlocker {
             // Don't fail completely - file sync was successful
         }
         
+        // Final step: Ensure the blocker mechanism file itself is up to date
+        // This ensures template changes (like logging fixes) are propagated
+        $this->ensure_blocker_file();
+
         $total_ips = count($blocked_ips['exact']) + count($blocked_ips['ranges']);
-        
+
         return [
             'success' => true,
             'message' => sprintf('Successfully synced %d blocked IPs', $total_ips),
             'total_ips' => $total_ips
         ];
-        
-        // Final step: Ensure the blocker mechanism file itself is up to date
-        // This ensures template changes (like logging fixes) are propagated
-        $this->ensure_blocker_file();
-        
-        return $result;
     }
     
     /**
@@ -435,42 +433,49 @@ class EarlyBlocker {
      * Enable early blocking
      */
     public function enable() {
+        // CRITICAL: Ensure blocker file exists BEFORE writing to .user.ini
+        // If file doesn't exist and auto_prepend_file references it, PHP will fatal error
+        if (!file_exists($this->blocker_file)) {
+            $this->ensure_blocker_file();
+            if (!file_exists($this->blocker_file)) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
+                error_log('VietShield: Cannot enable early blocking - blocker file does not exist: ' . $this->blocker_file);
+                return false;
+            }
+        }
+
         $server = $this->detect_web_server();
-        
+        $enabled = false;
+
         // ALWAYS enable .user.ini first (works with PHP-FPM on both Apache and Nginx)
-        // This is the primary method for modern PHP setups
-        // .user.ini works with:
-        // - Apache + PHP-FPM
-        // - Nginx + PHP-FPM
-        // - Any setup using PHP-FPM
-        // Check if file exists and is writable, or if we can create it
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
         if (file_exists($this->user_ini_file) && is_writable($this->user_ini_file)) {
             $this->enable_user_ini();
+            $enabled = true;
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
         } elseif (is_writable(ABSPATH)) {
             $this->enable_user_ini();
+            $enabled = true;
         } else {
             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
             error_log('VietShield: Cannot enable .user.ini - neither file nor ABSPATH is writable');
         }
-        
+
         // Only enable .htaccess for CONFIRMED Apache (not php-fpm or nginx)
-        // .htaccess only works with Apache + mod_php (not PHP-FPM)
         if ($server === 'apache') {
-            // Double-check: only enable if we're really sure it's Apache
             $server_software = sanitize_text_field($_SERVER['SERVER_SOFTWARE'] ?? '');
             if (stripos($server_software, 'apache') !== false || function_exists('apache_get_modules')) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Performance critical
                 if (file_exists($this->htaccess_file) || is_writable(ABSPATH)) {
                     $this->enable_htaccess();
+                    $enabled = true;
                 }
             }
         } else {
-            // Remove .htaccess markers if not Apache (cleanup for Nginx/php-fpm)
-            // Nginx doesn't read .htaccess, so we should clean it up
             $this->remove_markers($this->htaccess_file, '# BEGIN VietShield Early Blocker', '# END VietShield Early Blocker');
         }
+
+        return $enabled;
     }
     
     /**

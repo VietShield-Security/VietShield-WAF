@@ -442,7 +442,7 @@ $vswaf_total_steps = 2;
 .activation-complete {
     text-align: center;
     padding: 40px;
-    max-width: 500px;
+    max-width: 700px;
     margin: 0 auto;
 }
 

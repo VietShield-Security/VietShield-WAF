@@ -97,21 +97,23 @@
     },
     {
       "id": "lfi_011",
-      "name": "wp-config.php Access",
-      "description": "Detects wp-config.php file access",
-      "pattern": "wp-config\\.php",
+      "name": "wp-config.php Path Traversal",
+      "description": "Detects path traversal to wp-config.php",
+      "pattern": "(\\.\\.\\/|%2e%2e%2f|%252e).*wp-config\\.php",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: bare 'wp-config.php' matches admin UI, security plugins, etc. Now requires path traversal prefix"
     },
     {
       "id": "lfi_012",
-      "name": ".htaccess Access",
-      "description": "Detects .htaccess file access",
-      "pattern": "\\.htaccess",
+      "name": ".htaccess Path Traversal",
+      "description": "Detects path traversal to .htaccess",
+      "pattern": "(\\.\\.\\/|%2e%2e%2f|%252e).*\\.htaccess",
       "severity": "high",
       "enabled": true,
-      "contexts": ["get", "post"]
+      "contexts": ["get", "post"],
+      "_comment": "Narrowed: bare '.htaccess' matches admin panels. Now requires path traversal prefix"
     },
     {
       "id": "lfi_013",
@@ -171,7 +173,7 @@
       "id": "lfi_019",
       "name": "Windows boot.ini",
       "description": "Detects Windows boot.ini access",
-      "pattern": "[a-z]:[\\\\|/]boot\\.ini",
+      "pattern": "[a-z]:[\\\\|\\/]boot\\.ini",
       "severity": "high",
       "enabled": true,
       "contexts": ["any"]
@@ -180,7 +182,7 @@
       "id": "lfi_020",
       "name": "Windows System Files",
       "description": "Detects Windows system file access",
-      "pattern": "[a-z]:[\\\\|/]windows[\\\\|/]system32",
+      "pattern": "[a-z]:[\\\\|\\/]windows[\\\\|\\/]system32",
       "severity": "high",
       "enabled": true,
       "contexts": ["any"]
@@ -224,12 +226,13 @@
     },
     {
       "id": "lfi_025",
-      "name": "HTTP/FTP Wrapper",
-      "description": "Detects HTTP/FTP wrapper RFI attempts",
-      "pattern": "(https?|ftp):\\/\\/[^\\s]+\\.(php|txt|inc)",
+      "name": "Remote File Inclusion via wrapper",
+      "description": "Detects RFI via include/require-like parameters with remote PHP files",
+      "pattern": "(https?|ftp):\\/\\/[^\\s]+\\.(php|phtml|phar|inc)(\\?|#|$)",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["get"],
+      "_comment": "Narrowed: only checks GET params (not POST/cookies), removed .txt (too common), requires file extension at end of URL path. Redirect URLs are already excluded by the threat detector"
     }
   ]
 }

@@ -50,7 +50,12 @@ class RequestAnalyzer {
      * Get request URI
      */
     private function get_uri() {
-        $uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '/';
+        // Do NOT use esc_url_raw() here - it strips non-http protocols and
+        // modifies the URI before WAF inspection, which could allow bypasses.
+        // We only sanitize with wp_unslash() to undo WordPress magic quotes.
+        $uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '/';
+        // Strip null bytes for safety
+        $uri = str_replace(chr(0), '', $uri);
         // Decode URL to catch encoded attacks
         $uri = urldecode($uri);
         return $uri;
@@ -69,18 +74,75 @@ class RequestAnalyzer {
      * would cause false positives if scanned.
      */
     private static $wp_excluded_params = [
+        // WordPress core editor fields
         'content',           // Post content (TinyMCE/Gutenberg editor)
         'post_content',      // Post content field
+        'post_title',        // Post title (can contain special characters)
         'comment',           // Comment text
+        'comment_content',   // Comment content field
         'description',       // Term/user description
         'excerpt',           // Post excerpt
         'post_excerpt',      // Post excerpt field
+        'editor',            // Generic editor field
         'widget-text',       // Text widget
         'customized',        // Customizer data (JSON encoded)
-        '_wp_http_referer',  // WordPress nonce referer
         'wp_autosave',       // Autosave data
+        // WordPress internal fields
+        '_wp_http_referer',  // WordPress nonce referer
+        '_wpnonce',          // WordPress nonce value
+        's',                 // WordPress search query
+        'tax_query',         // Taxonomy query (complex array)
+        'meta_query',        // Meta query (complex array)
+        // Page builder / plugin fields
         'acf',               // Advanced Custom Fields data
         'meta',              // Meta fields
+        'data',              // Elementor/page builder data
+        'css',               // Customizer CSS / inline styles
+        'code',              // Code block content (Gutenberg)
+        // WooCommerce fields
+        'order_comments',    // WooCommerce order notes
+        'billing_address_1', // WooCommerce billing address
+        'shipping_address_1',// WooCommerce shipping address
+        // Form plugin fields
+        'form_fields',       // Generic form fields
+        'wpforms',           // WPForms data
+        'gform_fields',      // Gravity Forms data
+        'gform_field_values',// Gravity Forms field values
+        'input_values',      // Gravity Forms input values
+        '_wpcf7',            // Contact Form 7 form ID
+        'your-message',      // Contact Form 7 message field
+        'your-name',         // Contact Form 7 name field
+        'your-subject',      // Contact Form 7 subject field
+        // Elementor / Page Builders
+        'actions',           // Elementor form actions
+        'editor_post_id',    // Elementor editor
+        'initial_document_id',// Elementor initial document
+        'elements',          // Elementor elements data
+        'settings',          // Elementor/page builder settings
+        // WPBakery / Visual Composer
+        'vc_grid_data',      // Visual Composer grid
+        'shortcode',         // Shortcode content
+        'shortcodes',        // Multiple shortcodes
+        // Divi Builder
+        'et_pb_contact_message', // Divi contact form
+        'modules',           // Divi modules data
+        'et_builder_version',// Divi builder
+        // Yoast SEO
+        'yoast_wpseo_metadesc',  // Yoast meta description
+        'yoast_wpseo_title',     // Yoast title
+        'wpseo_title',           // Yoast title alt
+        'wpseo_metadesc',        // Yoast meta desc alt
+        // WooCommerce extended
+        'product_description',   // WooCommerce product description
+        'product_short_description', // WooCommerce short description
+        'variation_description', // WooCommerce variation
+        // ACF extended
+        'acf_fields',       // Advanced Custom Fields
+        'fields',            // ACF fields data
+        // bbPress / BuddyPress
+        'bbp_reply_content', // bbPress reply content
+        'bbp_topic_content', // bbPress topic content
+        'whats-new',         // BuddyPress activity
     ];
 
     /**
@@ -106,13 +168,16 @@ class RequestAnalyzer {
     private function get_post_params() {
         $params = [];
 
-        // Handle JSON body
+        // Handle JSON body (REST API / Gutenberg)
         $content_type = $this->get_content_type();
         if (strpos($content_type, 'application/json') !== false) {
             $body = $this->get_raw_body();
             $json = json_decode($body, true);
             if (is_array($json)) {
-                return $this->normalize_array($json);
+                // Filter out excluded params from JSON body too
+                // (Gutenberg sends content/title etc. as JSON fields)
+                $filtered = array_diff_key($json, array_flip(self::$wp_excluded_params));
+                return $this->normalize_array($filtered);
             }
         }
 
@@ -304,11 +369,17 @@ class RequestAnalyzer {
             $value = $decoded;
         }
 
-        // Only decode numeric HTML entities and common attack-relevant entities
-        // Do NOT decode all HTML entities - this prevents turning already-escaped
-        // safe content like &lt;script&gt; into <script> which triggers XSS rules
-        $value = preg_replace('/&#x([0-9a-fA-F]+);/', '', $value);
-        $value = preg_replace('/&#(\d+);/', '', $value);
+        // Decode numeric HTML entities to their actual characters for attack detection
+        // e.g., &#60; -> '<', &#x3C; -> '<'
+        // Do NOT decode named entities like &lt; &gt; - those are safe escaped content
+        $value = preg_replace_callback('/&#x([0-9a-fA-F]+);/', function($m) {
+            $char = chr(hexdec($m[1]));
+            return ($char !== false) ? $char : $m[0];
+        }, $value);
+        $value = preg_replace_callback('/&#(\d+);/', function($m) {
+            $code = (int) $m[1];
+            return ($code > 0 && $code < 127) ? chr($code) : $m[0];
+        }, $value);
 
         // Remove null bytes
         $value = str_replace(chr(0), '', $value);

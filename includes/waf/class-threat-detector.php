@@ -161,9 +161,8 @@ class ThreatDetector {
      */
     private function detect_sqli_builtin($value) {
         $patterns = [
-            // Union based
-            '/\bunion\b[\s\/\*]+\bselect\b/is',
-            '/\bunion\b[\s\/\*]+\ball\b[\s\/\*]+\bselect\b/is',
+            // Union based - narrowed to require whitespace/comments only between keywords
+            '/\bunion\b[\s\/\*]+(?:all\b[\s\/\*]+)?\bselect\b/is',
 
             // Error based - narrowed to require quote context (SQL string breakout)
             '/[\'\"]\s*\bor\b\s+[\'"]?\d+[\'"]?\s*=\s*[\'"]?\d+/is',
@@ -173,7 +172,6 @@ class ThreatDetector {
             '/;\s*(drop|truncate|delete|insert|update|create|alter)\b/is',
 
             // Comment injection - only after SQL keywords to reduce false positives
-            // Removed overly broad '/(\/\*|\*\/|--\s|#.*$)/m' pattern
             '/\b(select|union|insert|update|delete|drop|from|where)\b[^;]{0,80}(--\s|\/\*!)/is',
 
             // Common payloads
@@ -247,20 +245,21 @@ class ThreatDetector {
             '/<script[^>]*>/is',
 
             // Event handlers - require HTML tag context to avoid matching form data
-            // Removed overly broad '/\bon\w+\s*=\s*["\']?[^"\']+["\']?/is'
             '/<[^>]*\bon(load|error|click|mouse\w*|focus|blur|key\w*|submit|change|input)\s*=/is',
 
-            // JavaScript protocol
-            '/javascript\s*:/is',
+            // JavaScript protocol - require HTML attribute context
+            '/(href|src|action|formaction|data|background)\s*=\s*[\'"]?\s*javascript\s*:/is',
             '/vbscript\s*:/is',
-            '/data\s*:[^,]*;base64/is',
+            // Data URI - only dangerous MIME types or dangerous attributes
+            '/(href|action|formaction)\s*=\s*[\'"]?\s*data\s*:[^,]*;\s*base64/is',
+            '/data\s*:text\/(html|javascript)[^,]*;\s*base64/is',
 
             // SVG/XML attacks - specific tag + handler combos
             '/<svg[^>]*\bon\w+\s*=/is',
             '/<img[^>]*\bon(error|load)\s*=/is',
 
             // Dangerous tags in user input
-            '/<iframe[^>]*>/is',
+            '/<iframe[^>]*\bsrc\s*=/is',
             '/<object[^>]*>/is',
             '/<embed[^>]*>/is',
 
@@ -268,7 +267,7 @@ class ThreatDetector {
             '/(?:style\s*=|<style)[^>]*expression\s*\(/is',
 
             // HTML injection - narrowed to most dangerous tags only
-            '/<(script|iframe|object|embed|base|meta\s+http-equiv)[^>]*>/is',
+            '/<(script|object|embed|base|meta\s+http-equiv)[^>]*>/is',
         ];
         
         foreach ($patterns as $pattern) {
@@ -372,10 +371,13 @@ class ThreatDetector {
      */
     private function detect_rce_builtin($value) {
         $patterns = [
-            // PHP dangerous functions - eval/assert/create_function are always suspicious in request data
-            '/\b(eval|assert|create_function)\s*\(/is',
-            // Shell execution functions - only flag in request data (not file scanning)
-            '/\b(system|exec|shell_exec|passthru|popen|proc_open)\s*\(/is',
+            // PHP dangerous functions - narrowed to require variable/encoded input
+            '/\b(eval|assert)\s*\(\s*(\$|base64_decode|gzinflate|str_rot13|[\'\"]\s*\.)/is',
+            '/\bcreate_function\s*\(/is',
+            // Shell execution functions - narrowed to require variable or string input
+            '/\b(shell_exec|passthru|popen|proc_open)\s*\(\s*(\$|[\'"])/is',
+            '/\b(system)\s*\(\s*(\$|[\'"])/is',
+            '/\b(exec)\s*\(\s*(\$|[\'"])/is',
             // include/require only with user input superglobals
             '/\b(include|include_once|require|require_once)\s*\(?\s*\$_(GET|POST|REQUEST|COOKIE)/is',
             // Backticks - only with known shell commands inside
@@ -586,25 +588,26 @@ class ThreatDetector {
      */
     private function detect_lfi_builtin($value) {
         $patterns = [
-            // Path traversal
-            '/\.\.[\/\\\\]/is',
+            // Path traversal - require 2+ levels
+            '/(\.\.\/)(\.\.\/)+(.*)/is',
             '/\.\.%2f/is',
             '/\.\.%5c/is',
             '/%2e%2e[\/\\\\%]/is',
-            
+
             // Common targets
-            '/\/etc\/(passwd|shadow|hosts|group)/is',
+            '/\/etc\/(passwd|shadow|group)/is',
             '/\/proc\/self\/(environ|fd)/is',
-            '/\/var\/log\//is',
-            '/wp-config\.php/is',
-            
+            '/\/var\/log\/(apache|httpd|nginx|auth)/is',
+            // wp-config.php - only with path traversal context
+            '/(\.\.\/).*wp-config\.php/is',
+
             // PHP wrappers
             '/php:\/\/filter/is',
             '/php:\/\/input/is',
             '/expect:\/\//is',
             '/zip:\/\//is',
             '/phar:\/\//is',
-            
+
             // Windows paths
             '/[a-z]:[\/\\\\]windows/is',
             '/[a-z]:[\/\\\\]boot\.ini/is',
@@ -782,8 +785,9 @@ class ThreatDetector {
             ['pattern' => '/(?i)proc\/\W*self\/\W*environ/', 'name' => 'proc/self/environ Access', 'type' => 'lfi'],
             ['pattern' => '/(?i)(boot|win|system)\.ini/', 'name' => 'Windows INI File Access', 'type' => 'lfi'],
             
-            // Protocol smuggling
-            ['pattern' => '/(?i)\b(gopher|phar|file|ftp|ldap|dict|data):\/\//', 'name' => 'Protocol Smuggling', 'type' => 'ssrf'],
+            // Protocol smuggling - exclude data:image/ (legitimate inline images)
+            ['pattern' => '/(?i)\b(gopher|phar|file|ftp|ldap|dict):\/\//', 'name' => 'Protocol Smuggling', 'type' => 'ssrf'],
+            ['pattern' => '/(?i)\bdata:\/\/(?!image\/)/', 'name' => 'Data Protocol Smuggling', 'type' => 'ssrf'],
             
             // OGNL/Java injection
             ['pattern' => '/(?i)\bxwork\.MethodAccessor\b/', 'name' => 'OGNL Injection (Struts)', 'type' => 'rce'],

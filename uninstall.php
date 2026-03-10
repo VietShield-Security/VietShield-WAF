@@ -55,7 +55,30 @@ foreach ($vietshield_tables as $vietshield_table) {
     $wpdb->query("DROP TABLE IF EXISTS $vietshield_table");
 }
 
-// Clear scheduled cron jobs
+// Disable early blocker (remove from .user.ini/.htaccess) and clean up generated files
+$blocker_file = WP_CONTENT_DIR . '/vietshield-blocker.php';
+$blocked_ips_file = WP_CONTENT_DIR . '/vietshield-blocked-ips.php';
+$blocked_ips_bin = WP_CONTENT_DIR . '/vietshield-blocked-ips.bin';
+
+// Remove auto_prepend_file from .user.ini
+$user_ini = ABSPATH . '.user.ini';
+if (file_exists($user_ini) && is_writable($user_ini)) {
+    $content = file_get_contents($user_ini);
+    if ($content !== false && strpos($content, 'vietshield') !== false) {
+        $content = preg_replace('/^.*vietshield.*$/m', '', $content);
+        $content = preg_replace('/\n{3,}/', "\n\n", trim($content));
+        file_put_contents($user_ini, $content);
+    }
+}
+
+// Delete generated blocker files
+foreach ([$blocker_file, $blocked_ips_file, $blocked_ips_bin] as $file) {
+    if (file_exists($file)) {
+        @unlink($file);
+    }
+}
+
+// Clear ALL scheduled cron jobs (including previously missing ones)
 wp_clear_scheduled_hook('vietshield_cleanup_logs');
 wp_clear_scheduled_hook('vietshield_update_threat_feed');
 wp_clear_scheduled_hook('vietshield_aggregate_stats');
@@ -64,3 +87,11 @@ wp_clear_scheduled_hook('vietshield_malware_scan_event');
 wp_clear_scheduled_hook('vietshield_threat_intel_sync');
 wp_clear_scheduled_hook('vietshield_maintenance');
 wp_clear_scheduled_hook('vietshield_submit_threats');
+wp_clear_scheduled_hook('vietshield_ip_whitelist_sync');
+wp_clear_scheduled_hook('vietshield_sync_ip_metadata');
+wp_clear_scheduled_hook('vietshield_threat_intel_initial_sync');
+wp_clear_scheduled_hook('vietshield_early_blocker_setup');
+
+// Clean up additional transients and options
+delete_transient('vietshield_github_release');
+delete_option('vietshield_site_key');

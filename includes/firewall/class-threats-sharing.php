@@ -442,7 +442,10 @@ class ThreatsSharing {
             ];
         }
         
-        $pending = (int) $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE submitted = 0");
+        $pending = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table WHERE submitted = 0 AND retries < %d",
+            self::MAX_RETRIES
+        ));
         $submitted = (int) $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE submitted = 1");
         $failed = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM $table WHERE submitted = 0 AND retries >= %d",
@@ -482,7 +485,7 @@ class ThreatsSharing {
             attack_type VARCHAR(50) DEFAULT '',
             severity VARCHAR(20) DEFAULT 'medium',
             country_code VARCHAR(2) DEFAULT '',
-            as_number VARCHAR(20) DEFAULT '',
+            as_number VARCHAR(100) DEFAULT '',
             organization VARCHAR(255) DEFAULT '',
             domain VARCHAR(255) DEFAULT '',
             submitted TINYINT(1) DEFAULT 0,

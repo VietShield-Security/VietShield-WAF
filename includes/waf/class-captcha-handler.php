@@ -567,11 +567,16 @@ class CaptchaHandler {
         // Log successful verification
         $this->log_verification($token_data);
         
-        // Redirect to original URI
+        // Redirect to original URI (validate to prevent open redirect)
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Captcha verification doesn't use nonce
         $original_uri = isset($_POST['vietshield_original_uri']) ? sanitize_text_field(wp_unslash($_POST['vietshield_original_uri'])) : '/';
+
+        // Prevent open redirect: ensure URI is a relative path
+        if (empty($original_uri) || $original_uri[0] !== '/' || strpos($original_uri, '//') === 0) {
+            $original_uri = '/';
+        }
+
         $redirect_url = home_url($original_uri);
-        
         wp_safe_redirect($redirect_url);
         exit;
     }

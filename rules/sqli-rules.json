@@ -7,10 +7,11 @@
       "id": "sqli_001",
       "name": "Union Select Attack",
       "description": "Detects UNION SELECT SQL injection attempts",
-      "pattern": "\\bunion\\b[\\s\\S]*?\\bselect\\b",
+      "pattern": "\\bunion\\b[\\s\\/\\*]+(?:all\\b[\\s\\/\\*]+)?\\bselect\\b",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: [\\s\\S]*? was too greedy - matched 'union' and 'select' separated by any content (e.g. 'Credit Union - Please Select'). Now requires only whitespace/comments between UNION and SELECT"
     },
     {
       "id": "sqli_002",
@@ -153,11 +154,12 @@
     {
       "id": "sqli_017",
       "name": "HEX Encoded Attack",
-      "description": "Detects HEX encoded SQL injection",
-      "pattern": "0x[0-9a-f]{8,}",
+      "description": "Detects HEX encoded SQL injection in SQL context",
+      "pattern": "(?:\\bunion\\b|\\bselect\\b|\\binsert\\b|\\bupdate\\b|\\bwhere\\b|\\band\\b|\\bor\\b|=\\s*)0x[0-9a-fA-F]{8,}",
       "severity": "medium",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: bare 0x... matches CSS hex colors, hash values, etc. Now requires SQL keyword context before the hex value"
     },
     {
       "id": "sqli_018",
@@ -199,7 +201,7 @@
       "id": "sqli_022",
       "name": "ORDER BY Injection",
       "description": "Detects ORDER BY column enumeration with high column numbers or followed by SQL comment/injection",
-      "pattern": "\\border\\s+by\\s+\\d{2,}\\s*(--.?|#|/\\*|,\\s*\\d+)",
+      "pattern": "\\border\\s+by\\s+\\d{2,}\\s*(--.?|#|\\/\\*|,\\s*\\d+)",
       "severity": "medium",
       "enabled": true,
       "contexts": ["get", "post"],

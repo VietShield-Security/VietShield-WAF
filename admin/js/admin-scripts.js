@@ -140,12 +140,13 @@
         });
     });
 
-    // Show WordPress-style notice
+    // Show WordPress-style notice (message is escaped to prevent XSS)
     function showNotice(type, message) {
         var noticeClass = 'notice-error';
         if (type === 'success') noticeClass = 'notice-success';
         else if (type === 'warning') noticeClass = 'notice-warning';
-        var $notice = $('<div class="notice ' + noticeClass + ' is-dismissible"><p>' + message + '</p><button type="button" class="notice-dismiss"><span class="screen-reader-text">Dismiss this notice.</span></button></div>');
+        var $notice = $('<div class="notice ' + noticeClass + ' is-dismissible"><p></p><button type="button" class="notice-dismiss"><span class="screen-reader-text">Dismiss this notice.</span></button></div>');
+        $notice.find('p').text(message); // Use .text() instead of HTML concatenation to prevent XSS
 
         // Remove existing notices
         $('.vietshield-wrap > .notice').remove();
@@ -654,7 +655,7 @@
 
         function escapeAttr(str) {
             if (!str) return '';
-            return str.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
         }
 
         $('#vietshield-run-malware-scan').on('click', function (e) {

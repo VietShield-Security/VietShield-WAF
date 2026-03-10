@@ -64,11 +64,12 @@
     {
       "id": "xss_007",
       "name": "JavaScript Protocol",
-      "description": "Detects javascript: protocol usage",
-      "pattern": "javascript\\s*:",
+      "description": "Detects javascript: protocol in HTML attribute context",
+      "pattern": "(href|src|action|formaction|data|codebase|cite|background|poster|srcset)\\s*=\\s*['\"]?\\s*javascript\\s*:|<[^>]*javascript\\s*:",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: bare 'javascript:' matches text content. Now requires HTML attribute context (href=, src=, etc.) or inside HTML tag"
     },
     {
       "id": "xss_008",
@@ -81,12 +82,13 @@
     },
     {
       "id": "xss_009",
-      "name": "Data URI Base64",
-      "description": "Detects data URI with base64 encoding",
-      "pattern": "data\\s*:[^,]*;\\s*base64",
+      "name": "Data URI Base64 in HTML context",
+      "description": "Detects data URI with base64 in HTML attribute context (excluding images)",
+      "pattern": "(href|action|formaction|codebase)\\s*=\\s*['\"]?\\s*data\\s*:[^,]*;\\s*base64|data\\s*:text\\/(html|javascript)[^,]*;\\s*base64",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: data:image/png;base64 is legitimate (inline images, avatars). Now only flags data URIs in dangerous attributes (href, action) or with dangerous MIME types (text/html, text/javascript)"
     },
     {
       "id": "xss_010",
@@ -118,11 +120,12 @@
     {
       "id": "xss_013",
       "name": "IFRAME Injection",
-      "description": "Detects iframe tag injection",
-      "pattern": "<iframe[^>]*>",
+      "description": "Detects iframe tag injection with src attribute",
+      "pattern": "<iframe[^>]*\\bsrc\\s*=",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["get", "cookies"],
+      "_comment": "Narrowed: bare <iframe> matches Gutenberg embeds, oEmbed. Now requires src= attribute and only checks GET/cookies (POST editor content already excluded)"
     },
     {
       "id": "xss_014",
@@ -174,30 +177,33 @@
     },
     {
       "id": "xss_019",
-      "name": "Document.cookie",
-      "description": "Detects document.cookie access",
-      "pattern": "document\\s*\\.\\s*cookie",
+      "name": "Document.cookie in injection context",
+      "description": "Detects document.cookie access in script/event handler context",
+      "pattern": "(?:<script|javascript\\s*:|on\\w+\\s*=)[^>]*document\\s*\\.\\s*cookie",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: bare 'document.cookie' matches cookie consent plugins. Now requires script/event handler context"
     },
     {
       "id": "xss_020",
-      "name": "Document.write",
-      "description": "Detects document.write usage",
-      "pattern": "document\\s*\\.\\s*write(ln)?\\s*\\(",
+      "name": "Document.write in injection context",
+      "description": "Detects document.write in script/event handler context",
+      "pattern": "(?:<script|javascript\\s*:|on\\w+\\s*=)[^>]*document\\s*\\.\\s*write(ln)?\\s*\\(",
       "severity": "medium",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["get", "cookies"],
+      "_comment": "Narrowed: bare 'document.write' is too common. Now requires injection context and only checks GET/cookies"
     },
     {
       "id": "xss_021",
-      "name": "innerHTML Assignment",
-      "description": "Detects innerHTML manipulation",
-      "pattern": "\\.innerHTML\\s*=",
+      "name": "innerHTML Assignment in injection context",
+      "description": "Detects innerHTML manipulation in script/event handler context",
+      "pattern": "(?:<script|javascript\\s*:|on\\w+\\s*=)[^>]*\\.innerHTML\\s*=",
       "severity": "medium",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["get", "cookies"],
+      "_comment": "Narrowed: bare '.innerHTML=' is too common in legitimate AJAX responses. Now requires injection context"
     },
     {
       "id": "xss_022",

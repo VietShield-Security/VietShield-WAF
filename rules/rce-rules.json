@@ -5,21 +5,23 @@
   "rules": [
     {
       "id": "rce_001",
-      "name": "PHP eval()",
-      "description": "Detects PHP eval() function usage",
-      "pattern": "\\beval\\s*\\(",
+      "name": "PHP eval() with variable/encoded input",
+      "description": "Detects PHP eval() with variable, encoded, or user-controlled input",
+      "pattern": "\\beval\\s*\\(\\s*(\\$|base64_decode|gzinflate|gzuncompress|str_rot13|strrev|urldecode|rawurldecode|hex2bin|['\"]\\s*\\.)",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: bare eval() matches legitimate text like 'evaluation('. Now requires variable ($), decoding function, or string concatenation as argument"
     },
     {
       "id": "rce_002",
-      "name": "PHP assert()",
-      "description": "Detects PHP assert() function usage",
-      "pattern": "\\bassert\\s*\\(",
+      "name": "PHP assert() with variable input",
+      "description": "Detects PHP assert() with variable or encoded input",
+      "pattern": "\\bassert\\s*\\(\\s*(\\$|base64_decode|gzinflate|str_rot13|['\"]\\s*\\.)",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: bare assert() is too common in normal text. Now requires variable or decoding function"
     },
     {
       "id": "rce_003",
@@ -41,57 +43,63 @@
     },
     {
       "id": "rce_005",
-      "name": "PHP system()",
-      "description": "Detects system() function usage",
-      "pattern": "\\bsystem\\s*\\(",
+      "name": "PHP system() with input",
+      "description": "Detects system() with variable or user-controlled input",
+      "pattern": "\\bsystem\\s*\\(\\s*(\\$|['\"]\\s*\\.|base64_decode|gzinflate)",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: 'system(' matches text like 'operating system (Windows)'. Now requires variable or string concat"
     },
     {
       "id": "rce_006",
-      "name": "PHP exec()",
-      "description": "Detects exec() function usage",
-      "pattern": "\\bexec\\s*\\(",
+      "name": "PHP exec() with input",
+      "description": "Detects exec() with variable or user-controlled input",
+      "pattern": "\\bexec\\s*\\(\\s*(\\$|['\"]\\s*\\.|base64_decode|gzinflate)",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: 'exec(' matches 'executive ('. Now requires variable or string concat"
     },
     {
       "id": "rce_007",
-      "name": "PHP shell_exec()",
-      "description": "Detects shell_exec() function usage",
-      "pattern": "\\bshell_exec\\s*\\(",
+      "name": "PHP shell_exec() with input",
+      "description": "Detects shell_exec() with variable or user-controlled input",
+      "pattern": "\\bshell_exec\\s*\\(\\s*(\\$|['\"])",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires variable or string argument"
     },
     {
       "id": "rce_008",
-      "name": "PHP passthru()",
-      "description": "Detects passthru() function usage",
-      "pattern": "\\bpassthru\\s*\\(",
+      "name": "PHP passthru() with input",
+      "description": "Detects passthru() with variable or user-controlled input",
+      "pattern": "\\bpassthru\\s*\\(\\s*(\\$|['\"])",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires variable or string argument"
     },
     {
       "id": "rce_009",
-      "name": "PHP popen()",
-      "description": "Detects popen() function usage",
-      "pattern": "\\bpopen\\s*\\(",
+      "name": "PHP popen() with input",
+      "description": "Detects popen() with variable or user-controlled input",
+      "pattern": "\\bpopen\\s*\\(\\s*(\\$|['\"])",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires variable or string argument"
     },
     {
       "id": "rce_010",
-      "name": "PHP proc_open()",
-      "description": "Detects proc_open() function usage",
-      "pattern": "\\bproc_open\\s*\\(",
+      "name": "PHP proc_open() with input",
+      "description": "Detects proc_open() with variable or user-controlled input",
+      "pattern": "\\bproc_open\\s*\\(\\s*(\\$|['\"])",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires variable or string argument"
     },
     {
       "id": "rce_011",
@@ -105,12 +113,13 @@
     },
     {
       "id": "rce_012",
-      "name": "PHP call_user_func()",
-      "description": "Detects call_user_func() usage",
-      "pattern": "\\bcall_user_func(_array)?\\s*\\(",
+      "name": "PHP call_user_func() with encoded input",
+      "description": "Detects call_user_func() with variable or encoded input indicating exploitation",
+      "pattern": "\\bcall_user_func(_array)?\\s*\\(\\s*(\\$_(GET|POST|REQUEST|COOKIE)|base64_decode|gzinflate|str_rot13)",
       "severity": "high",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: bare call_user_func is used extensively in WordPress core and plugins. Now requires superglobal or decoding function"
     },
     {
       "id": "rce_013",
@@ -124,21 +133,23 @@
     },
     {
       "id": "rce_014",
-      "name": "Shell Command - wget",
-      "description": "Detects wget command injection",
-      "pattern": "\\bwget\\s+[^\\s]+",
+      "name": "Shell Command - wget with output",
+      "description": "Detects wget command injection with output redirection",
+      "pattern": "\\bwget\\s+[^\\s]*https?:\\/\\/[^\\s]+\\s+(-O|-P|>|\\|)",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: bare 'wget url' matches blog content mentioning wget. Now requires output flags (-O, -P) or shell redirection"
     },
     {
       "id": "rce_015",
-      "name": "Shell Command - curl",
-      "description": "Detects curl command injection",
-      "pattern": "\\bcurl\\s+-[^\\s]*[oO]",
+      "name": "Shell Command - curl with output",
+      "description": "Detects curl command injection with output",
+      "pattern": "\\bcurl\\s+[^\\s]*(-[^\\s]*[oO]|\\|\\s*(?:bash|sh|php))",
       "severity": "critical",
       "enabled": true,
-      "contexts": ["any"]
+      "contexts": ["any"],
+      "_comment": "Narrowed: requires -o/-O output flag or pipe to shell"
     },
     {
       "id": "rce_016",

@@ -79,10 +79,11 @@ class RateLimiter {
         // Get limit config
         $limit_config = $this->limits[$endpoint] ?? $this->limits['global'];
         
-        // Check rate limit
-        $current_count = $this->get_request_count($ip, $endpoint);
-        
-        if ($current_count >= $limit_config['requests']) {
+        // Atomic increment-and-check: increment first, then check if over limit
+        // This prevents race conditions where concurrent requests all read the same count
+        $new_count = $this->atomic_increment($ip, $endpoint, $limit_config['window']);
+
+        if ($new_count > $limit_config['requests']) {
             return [
                 'blocked' => true,
                 'reason' => sprintf(
@@ -92,20 +93,17 @@ class RateLimiter {
                     $endpoint
                 ),
                 'endpoint' => $endpoint,
-                'current_count' => $current_count + 1, // +1 for this request
+                'current_count' => $new_count,
                 'limit' => $limit_config['requests'],
                 'window' => $limit_config['window'],
                 'retry_after' => $this->get_retry_after($ip, $endpoint, $limit_config['window']),
             ];
         }
-        
-        // Increment counter
-        $this->increment_count($ip, $endpoint, $limit_config['window']);
-        
+
         return [
             'blocked' => false,
             'reason' => '',
-            'remaining' => $limit_config['requests'] - $current_count - 1,
+            'remaining' => $limit_config['requests'] - $new_count,
         ];
     }
     
@@ -195,37 +193,47 @@ class RateLimiter {
     }
     
     /**
-     * Increment request count
+     * Atomic increment-and-return: inserts or increments in a single query
+     * Returns the new count after incrementing
      */
-    private function increment_count($ip, $endpoint, $window) {
+    private function atomic_increment($ip, $endpoint, $window) {
         global $wpdb;
-        
+
         $current_time = time();
         $window_start = $current_time - $window;
-        
-        // Try to update existing record
+
+        // First, try to atomically update existing valid record
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $updated = $wpdb->query($wpdb->prepare(
-            "UPDATE {$this->table} 
-             SET request_count = request_count + 1 
+            "UPDATE {$this->table}
+             SET request_count = request_count + 1
              WHERE ip = %s AND endpoint = %s AND window_start > %d",
             $ip,
             $endpoint,
             $window_start
         ));
-        
-        if (!$updated) {
-            // Insert new record
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
-            $wpdb->query($wpdb->prepare(
-                "INSERT INTO {$this->table} (ip, endpoint, request_count, window_start) 
-                 VALUES (%s, %s, 1, %d)
-                 ON DUPLICATE KEY UPDATE request_count = request_count + 1, window_start = %d",
-                $ip,
-                $endpoint,
-                $current_time,
-                $current_time
-            ));
+
+        if ($updated) {
+            // Read the count after atomic increment
+            return $this->get_request_count($ip, $endpoint);
         }
+
+        // No valid record exists - insert new one
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
+        $wpdb->query($wpdb->prepare(
+            "INSERT INTO {$this->table} (ip, endpoint, request_count, window_start)
+             VALUES (%s, %s, 1, %d)
+             ON DUPLICATE KEY UPDATE request_count = IF(window_start > %d, request_count + 1, 1),
+                                      window_start = IF(window_start > %d, window_start, %d)",
+            $ip,
+            $endpoint,
+            $current_time,
+            $window_start,
+            $window_start,
+            $current_time
+        ));
+
+        return $this->get_request_count($ip, $endpoint);
     }
     
     /**

@@ -43,6 +43,11 @@ class VietShield_Deactivator {
         wp_clear_scheduled_hook('vietshield_malware_scan_event');
         wp_clear_scheduled_hook('vietshield_threat_intel_sync');
         wp_clear_scheduled_hook('vietshield_maintenance');
+        wp_clear_scheduled_hook('vietshield_submit_threats');
+        wp_clear_scheduled_hook('vietshield_ip_whitelist_sync');
+        wp_clear_scheduled_hook('vietshield_sync_ip_metadata');
+        wp_clear_scheduled_hook('vietshield_threat_intel_initial_sync');
+        wp_clear_scheduled_hook('vietshield_early_blocker_setup');
     }
     
     /**

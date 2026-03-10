@@ -157,13 +157,7 @@ class ThreatIntelligence {
             ];
         }
         
-        // Clear existing data for this category
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
-        $wpdb->query("TRUNCATE TABLE {$table}");
-        
-        // Clear cache (WordPress doesn't have flush_group, so we'll clear on-demand)
-        
-        // Insert new data in batches
+        // Validate feed data BEFORE clearing existing data
         $ips = $feed['data'] ?? [];
         if (empty($ips) || !is_array($ips)) {
             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
@@ -173,6 +167,11 @@ class ThreatIntelligence {
                 'error' => 'No IPs in feed data. Total: ' . ($feed['total'] ?? 0),
             ];
         }
+
+        // Only truncate AFTER we've confirmed valid data to insert
+        // This prevents leaving an empty table if the insert fails
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
+        $wpdb->query("TRUNCATE TABLE {$table}");
         
         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
         error_log('VietShield Threat Intel: Starting sync for ' . count($ips) . ' IPs from category ' . $category);

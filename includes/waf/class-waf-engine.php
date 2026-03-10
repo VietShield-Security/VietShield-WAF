@@ -352,10 +352,8 @@ class WAFEngine {
         // Queue IP for Threats Sharing (always enabled, cannot be disabled)
         $this->queue_threat_for_sharing($this->request_data['ip'] ?? '', $matched, $attack_type, $severity);
         
-        // Ensure database is flushed before exit
-        if (function_exists('wp_cache_flush')) {
-            wp_cache_flush();
-        }
+        // Note: removed wp_cache_flush() here - it was clearing the entire object cache
+        // (Redis/Memcached) on every blocked request, degrading performance for legitimate users
         
         // Send block response with Block ID
         $this->response_handler->block([
@@ -535,23 +533,22 @@ class WAFEngine {
             return true;
         }
         
-        // Skip heartbeat and admin AJAX requests
+        // Skip heartbeat and authenticated admin AJAX requests only
         if (defined('DOING_AJAX') && DOING_AJAX) {
-            // Skip heartbeat
+            // Skip heartbeat (always safe)
             if (isset($_POST['action']) && $_POST['action'] === 'heartbeat') {
                 return true;
             }
-            
-            // Skip all AJAX requests from admin (check referer)
-            $referer = isset($_SERVER['HTTP_REFERER']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_REFERER'])) : '';
-            if (preg_match('#/wp-admin/#', $referer)) {
-                return true;
+
+            // Skip AJAX from admin panel ONLY for authenticated users with a login cookie
+            if ($this->is_user_logged_in_early()) {
+                $referer = isset($_SERVER['HTTP_REFERER']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_REFERER'])) : '';
+                if (preg_match('#/wp-admin/#', $referer)) {
+                    return true;
+                }
             }
-            
-            // Skip AJAX requests to admin-ajax.php
-            if (strpos($uri, 'admin-ajax.php') !== false) {
-                return true;
-            }
+
+            // DO NOT skip unauthenticated admin-ajax.php requests - they must be scanned
         }
         
         return false;
@@ -780,34 +777,98 @@ class WAFEngine {
      */
     private function get_client_ip() {
         $trusted_proxies = $this->get_option('trusted_proxies', []);
-        
-        // Check for proxy headers
-        $headers = [
-            'HTTP_CF_CONNECTING_IP',     // Cloudflare
-            'HTTP_X_REAL_IP',            // Nginx proxy
-            'HTTP_X_FORWARDED_FOR',      // Standard proxy
-            'HTTP_CLIENT_IP',
-            'REMOTE_ADDR'
-        ];
-        
-        foreach ($headers as $header) {
-            if (!empty($_SERVER[$header])) {
-                $ip = sanitize_text_field(wp_unslash($_SERVER[$header]));
-                
-                // X-Forwarded-For can contain multiple IPs
-                if ($header === 'HTTP_X_FORWARDED_FOR') {
-                    $ips = explode(',', $ip);
-                    $ip = trim($ips[0]);
-                }
-                
-                // Validate IP
-                if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                    return $ip;
+        $remote_addr = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'));
+
+        // Only trust proxy headers if REMOTE_ADDR is a trusted proxy
+        $is_trusted = false;
+        if (!empty($trusted_proxies)) {
+            foreach ($trusted_proxies as $proxy) {
+                if (strpos($proxy, '/') !== false) {
+                    // CIDR range check
+                    if ($this->ip_in_cidr($remote_addr, $proxy)) {
+                        $is_trusted = true;
+                        break;
+                    }
+                } elseif ($remote_addr === $proxy) {
+                    $is_trusted = true;
+                    break;
                 }
             }
         }
-        
-        return sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+
+        if ($is_trusted) {
+            // Check proxy headers in order of specificity
+            $headers = [
+                'HTTP_CF_CONNECTING_IP',     // Cloudflare
+                'HTTP_X_REAL_IP',            // Nginx proxy
+                'HTTP_X_FORWARDED_FOR',      // Standard proxy
+                'HTTP_CLIENT_IP',
+            ];
+
+            foreach ($headers as $header) {
+                if (!empty($_SERVER[$header])) {
+                    $ip = sanitize_text_field(wp_unslash($_SERVER[$header]));
+
+                    // X-Forwarded-For can contain multiple IPs - take the first (client) IP
+                    if ($header === 'HTTP_X_FORWARDED_FOR') {
+                        $ips = explode(',', $ip);
+                        $ip = trim($ips[0]);
+                    }
+
+                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                        return $ip;
+                    }
+                }
+            }
+        }
+
+        // Return REMOTE_ADDR directly (no proxy trust)
+        if (filter_var($remote_addr, FILTER_VALIDATE_IP)) {
+            return $remote_addr;
+        }
+
+        return '0.0.0.0';
+    }
+
+    /**
+     * Check if IP is within a CIDR range (for trusted proxy check)
+     */
+    private function ip_in_cidr($ip, $cidr) {
+        list($subnet, $bits) = explode('/', $cidr, 2);
+        $bits = (int) $bits;
+
+        // IPv6
+        if (filter_var($subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $ip_bin = inet_pton($ip);
+            $subnet_bin = inet_pton($subnet);
+            if ($ip_bin === false || $subnet_bin === false) return false;
+
+            // Bit-level comparison for correct prefix matching
+            $ip_hex = bin2hex($ip_bin);
+            $subnet_hex = bin2hex($subnet_bin);
+            $full_hex_chars = intdiv($bits, 4);
+            $remainder_bits = $bits % 4;
+
+            if (substr($ip_hex, 0, $full_hex_chars) !== substr($subnet_hex, 0, $full_hex_chars)) {
+                return false;
+            }
+            if ($remainder_bits > 0) {
+                $ip_nibble = hexdec($ip_hex[$full_hex_chars]);
+                $subnet_nibble = hexdec($subnet_hex[$full_hex_chars]);
+                $mask = (0xF << (4 - $remainder_bits)) & 0xF;
+                if (($ip_nibble & $mask) !== ($subnet_nibble & $mask)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // IPv4
+        $ip_long = ip2long($ip);
+        $subnet_long = ip2long($subnet);
+        if ($ip_long === false || $subnet_long === false) return false;
+        $mask = (-1 << (32 - $bits)) & 0xFFFFFFFF;
+        return ($ip_long & $mask) === ($subnet_long & $mask);
     }
     
     /**

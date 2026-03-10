@@ -243,13 +243,13 @@ class VietShield_Scheduled_Tasks {
             $wpdb->query("DELETE FROM {$items_table} WHERE scan_id IN ({$ids})");
         }
         
-        // 4. Clear expired transients
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Transient cleanup
+        // 4. Clear expired VietShield transients
+        // Only delete timeout entries that have expired, then clean up their matching value entries
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
         $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_vietshield_%' AND option_value < UNIX_TIMESTAMP()");
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Transient cleanup
+        // Delete orphaned transient values whose timeout entry no longer exists
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
-        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_vietshield_%' AND option_value < UNIX_TIMESTAMP()");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_vietshield_%' AND option_name NOT LIKE '_transient_timeout_%' AND option_name NOT IN (SELECT REPLACE(option_name, '_transient_timeout_', '_transient_') FROM (SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_vietshield_%') AS t)");
         
         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
         error_log('VietShield: Maintenance tasks completed');

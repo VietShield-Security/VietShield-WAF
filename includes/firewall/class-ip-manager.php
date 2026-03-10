@@ -171,11 +171,12 @@ class IPManager {
         
         $ip_long = ip2long($ip);
         $subnet_long = ip2long($subnet);
-        $mask = -1 << (32 - $bits);
-        
-        $subnet_long &= $mask;
-        
-        return ($ip_long & $mask) === $subnet_long;
+        if ($ip_long === false || $subnet_long === false) {
+            return false;
+        }
+        $mask = (-1 << (32 - $bits)) & 0xFFFFFFFF; // Mask to 32-bit for 64-bit PHP
+
+        return ($ip_long & $mask) === ($subnet_long & $mask);
     }
     
     /**
@@ -184,18 +185,33 @@ class IPManager {
     private function ipv6_in_range($ip, $subnet, $bits) {
         $ip_bin = inet_pton($ip);
         $subnet_bin = inet_pton($subnet);
-        
+
         if ($ip_bin === false || $subnet_bin === false) {
             return false;
         }
-        
+
         $ip_hex = bin2hex($ip_bin);
         $subnet_hex = bin2hex($subnet_bin);
-        
-        // Convert bits to hex characters
-        $hex_chars = ceil($bits / 4);
-        
-        return substr($ip_hex, 0, $hex_chars) === substr($subnet_hex, 0, $hex_chars);
+
+        // Compare full hex chars first (each hex char = 4 bits)
+        $full_hex_chars = intdiv($bits, 4);
+        $remainder_bits = $bits % 4;
+
+        if (substr($ip_hex, 0, $full_hex_chars) !== substr($subnet_hex, 0, $full_hex_chars)) {
+            return false;
+        }
+
+        // Handle remaining bits (non-4-bit-aligned prefixes like /47, /49)
+        if ($remainder_bits > 0 && $full_hex_chars < strlen($ip_hex)) {
+            $ip_nibble = hexdec($ip_hex[$full_hex_chars]);
+            $subnet_nibble = hexdec($subnet_hex[$full_hex_chars]);
+            $mask = (0xF << (4 - $remainder_bits)) & 0xF;
+            if (($ip_nibble & $mask) !== ($subnet_nibble & $mask)) {
+                return false;
+            }
+        }
+
+        return true;
     }
     
     /**

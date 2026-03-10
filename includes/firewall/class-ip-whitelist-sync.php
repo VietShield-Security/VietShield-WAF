@@ -170,8 +170,10 @@ class IPWhitelistSync {
             return ['success' => false, 'count' => 0, 'error' => 'No Cloudflare IPs found'];
         }
         
-        // Store Cloudflare IPs in trusted_proxies option
-        $options['trusted_proxies'] = array_unique($all_ips);
+        // Merge Cloudflare IPs with existing manual trusted_proxies (preserve user entries)
+        $existing_proxies = $options['trusted_proxies'] ?? [];
+        $merged = array_unique(array_merge($existing_proxies, $all_ips));
+        $options['trusted_proxies'] = array_values($merged);
         update_option('vietshield_options', $options);
         
         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging

@@ -84,22 +84,34 @@ class LoginSecurity {
      * Automatically add admin IP to whitelist
      */
     private function auto_whitelist_admin_ip($ip, $username) {
+        // Skip private/local IPs - no need to whitelist
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return;
+        }
+
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-ip-manager.php';
         $ip_manager = new \VietShield\Firewall\IPManager();
-        
+
         // Check if IP is already whitelisted
         if ($ip_manager->is_whitelisted($ip)) {
-            return; // Already whitelisted, skip
+            return;
         }
-        
-        // Add to whitelist with note
+
+        // Use a transient-based temporary whitelist (24h) instead of permanent
+        // This prevents permanently whitelisting an attacker who compromises admin creds
+        $transient_key = 'vietshield_admin_ip_' . md5($ip);
+        if (get_transient($transient_key)) {
+            return; // Already temp-whitelisted
+        }
+        set_transient($transient_key, $username, DAY_IN_SECONDS);
+
         $note = sprintf(
             /* translators: %1$s: Username, %2$s: Date/time of login */
             __('Auto-whitelisted: Admin login by %1$s on %2$s', 'vietshield-waf'),
             sanitize_text_field($username),
             wp_date('Y-m-d H:i:s')
         );
-        
+
         $ip_manager->add_to_whitelist($ip, $note);
     }
     
@@ -174,9 +186,10 @@ class LoginSecurity {
     private function check_and_block($ip, $username) {
         $max_attempts = $this->get_option('login_max_attempts', 5);
         $lockout_duration = $this->get_option('login_lockout_duration', 900); // 15 minutes
-        
-        // Count recent failed attempts
-        $failed_count = $this->get_failed_attempts_count($ip, $max_attempts * 2);
+        $time_window = $this->get_option('login_time_window', 900); // 15 minutes
+
+        // Count recent failed attempts within the configured time window
+        $failed_count = $this->get_failed_attempts_count($ip, $time_window);
         
         if ($failed_count >= $max_attempts) {
             // Block IP temporarily
@@ -307,16 +320,21 @@ class LoginSecurity {
             );
         }
         
-        // Verify nonce (optional, WordPress already has CSRF protection)
+        // Verify nonce (WordPress already has CSRF protection, this is defense-in-depth)
         if (isset($_POST['vietshield_login_nonce'])) {
             $nonce = sanitize_text_field(wp_unslash($_POST['vietshield_login_nonce']));
             if (!wp_verify_nonce($nonce, 'vietshield_login')) {
-                // Invalid nonce - might be CSRF
+                // Invalid nonce - block as potential CSRF
                 $ip = $this->get_client_ip();
                 $this->log_attempt($ip, $username ?: 'unknown', false);
+
+                return new \WP_Error(
+                    'vietshield_csrf',
+                    __('<strong>Error:</strong> Security verification failed. Please refresh the page and try again.', 'vietshield-waf')
+                );
             }
         }
-        
+
         return $user;
     }
     
@@ -326,11 +344,17 @@ class LoginSecurity {
     private function send_failed_login_notification($ip, $username) {
         $email = get_option('admin_email');
         $threshold = $this->get_option('login_notification_threshold', 3);
-        
+
         $failed_count = $this->get_failed_attempts_count($ip);
-        
+
         // Only send if threshold reached
         if ($failed_count >= $threshold) {
+            // Dedup: only send one email per IP per 15 minutes
+            $transient_key = 'vietshield_login_notif_' . md5($ip);
+            if (get_transient($transient_key)) {
+                return; // Already notified recently
+            }
+            set_transient($transient_key, 1, 900); // 15 minutes cooldown
             $subject = sprintf(
                 /* translators: %s: Site name */
                 __('[%s] Failed Login Attempts Detected', 'vietshield-waf'),
@@ -356,28 +380,42 @@ class LoginSecurity {
      * Get client IP
      */
     private function get_client_ip() {
-        $headers = [
-            'HTTP_CF_CONNECTING_IP',
-            'HTTP_X_REAL_IP',
-            'HTTP_X_FORWARDED_FOR',
-            'REMOTE_ADDR'
-        ];
-        
-        foreach ($headers as $header) {
-            if (!empty($_SERVER[$header])) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- IP validation below
-                $ip = sanitize_text_field($_SERVER[$header]);
-                if (strpos($ip, ',') !== false) {
-                    $ip = trim(explode(',', $ip)[0]);
-                }
-                if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                    return $ip;
+        $options = get_option('vietshield_options', []);
+        $trusted_proxies = $options['trusted_proxies'] ?? [];
+        $remote_addr = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '0.0.0.0';
+
+        // Only trust proxy headers if REMOTE_ADDR is a trusted proxy
+        $is_trusted = false;
+        if (!empty($trusted_proxies)) {
+            foreach ($trusted_proxies as $proxy) {
+                if ($remote_addr === $proxy) {
+                    $is_trusted = true;
+                    break;
                 }
             }
         }
-        
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Fallback IP
-        return isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '0.0.0.0';
+
+        if ($is_trusted) {
+            $headers = [
+                'HTTP_CF_CONNECTING_IP',
+                'HTTP_X_REAL_IP',
+                'HTTP_X_FORWARDED_FOR',
+            ];
+
+            foreach ($headers as $header) {
+                if (!empty($_SERVER[$header])) {
+                    $ip = sanitize_text_field(wp_unslash($_SERVER[$header]));
+                    if (strpos($ip, ',') !== false) {
+                        $ip = trim(explode(',', $ip)[0]);
+                    }
+                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                        return $ip;
+                    }
+                }
+            }
+        }
+
+        return filter_var($remote_addr, FILTER_VALIDATE_IP) ? $remote_addr : '0.0.0.0';
     }
     
     /**

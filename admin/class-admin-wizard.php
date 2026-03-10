@@ -20,9 +20,12 @@ class VietShield_Admin_Wizard {
         add_action('admin_menu', [$this, 'add_wizard_page']);
         add_action('wp_ajax_vietshield_wizard_save', [$this, 'ajax_save_step']);
         add_action('wp_ajax_vietshield_wizard_complete', [$this, 'ajax_complete_wizard']);
-        
+
         // Fix PHP 8.x null title warning - set title early in admin_init
         add_action('admin_init', [$this, 'fix_wizard_title'], 0);
+
+        // Hide all other admin notices on wizard page
+        add_action('admin_head', [$this, 'hide_notices_on_wizard']);
     }
     
     /**
@@ -40,6 +43,23 @@ class VietShield_Admin_Wizard {
         }
     }
     
+    /**
+     * Hide all admin notices on wizard page for clean UI
+     */
+    public function hide_notices_on_wizard() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Just reading page name
+        $current_page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
+        if ($current_page !== 'vietshield-wizard') {
+            return;
+        }
+
+        // Remove all notice hooks
+        remove_all_actions('admin_notices');
+        remove_all_actions('all_admin_notices');
+        remove_all_actions('network_admin_notices');
+        remove_all_actions('user_admin_notices');
+    }
+
     /**
      * Check if wizard should be shown
      */
@@ -278,10 +298,11 @@ class VietShield_Admin_Wizard {
             }
             
             // Setup Early Blocker directly
+            // sync_blocked_ips() creates the blocker file AND calls enable() internally
+            // Do NOT call enable() separately before sync - it would write to .user.ini before the blocker file exists
             if (!empty($options['early_blocking_enabled']) && $wizard_data['firewall_mode'] === 'protecting') {
                 require_once VIETSHIELD_PLUGIN_DIR . 'includes/firewall/class-early-blocker.php';
                 $early_blocker = new \VietShield\Firewall\EarlyBlocker();
-                $early_blocker->enable();
                 $early_blocker->sync_blocked_ips();
             }
             
