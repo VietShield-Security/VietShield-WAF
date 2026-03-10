@@ -4,14 +4,14 @@
 **Tags:** security, firewall, waf, malware, protection  
 **Requires at least:** 5.0  
 **Tested up to:** 6.9  
-**Stable tag:** 1.0.8
+**Stable tag:** 1.0.9
 **Requires PHP:** 7.4
 **License:** GPLv2 or later
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
 High-performance Web Application Firewall for WordPress with real-time threat detection and blocking.
 
-**Version:** 1.0.8
+**Version:** 1.0.9
 **Web:** [https://vietshield.org](https://vietshield.org)  
 **Recommended Webserver:** Nginx/Openresty
 
@@ -171,6 +171,31 @@ You can get support through our [GitHub Issues](https://github.com/VietShield-Se
 ---
 
 ## 📝 Changelog
+
+### Version 1.0.9 (2026-03-10)
+**Critical Fixes:**
+- Fixed 500 error when early blocker writes `.user.ini` before blocker file exists
+- Fixed IP spoofing vulnerability in WAF engine, login security, and rate limiter
+- Fixed race condition in rate limiter with atomic database operations
+- Fixed IPv6 CIDR matching for non-4-bit-aligned prefix lengths
+- Fixed XSS vulnerability in admin AJAX notice rendering
+- Fixed open redirect in CAPTCHA handler via unvalidated `original_uri`
+- Fixed threat intelligence feed data validation before TRUNCATE (prevents empty table on bad data)
+
+**Bug Fixes:**
+- Fixed brute force time window using wrong multiplier (`max_attempts*2` instead of configurable window)
+- Fixed transient cleanup query deleting wrong entries
+- Fixed `wp_cache_flush()` clearing entire object cache on every blocked request
+- Fixed cron jobs rescheduling on every page load
+- Fixed email notification flooding on repeated login failures
+- Fixed Cloudflare IP sync overwriting manual trusted proxy entries
+- Fixed wizard page too narrow and other plugin notices overlapping
+- Fixed dead code in firewall mode switching and `whitelist_admins` not persisting
+
+**Improvements:**
+- Hide other plugins' admin notices on all VietShield pages
+- Early blocker file existence check before enabling `auto_prepend_file`
+- Improved uninstall cleanup (missing cron hooks, transients, options, blocker files)
 
 ### Version 1.0.8 (2026-03-09)
 **UI/UX Improvements:**
