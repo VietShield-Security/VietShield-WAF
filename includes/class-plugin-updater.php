@@ -333,8 +333,9 @@ class PluginUpdater {
             return null;
         }
         
-        // Extract version from tag (remove 'v' prefix if present)
-        $version = ltrim($data['tag_name'], 'vV');
+        // Extract version from tag (remove 'v' or 'v.' prefix if present)
+        $version = $data['tag_name'];
+        $version = preg_replace('/^[vV]\.?/', '', $version);
         
         // Find the ZIP asset
         // Asset naming convention: vietshield-waf.zip or vietshield-waf-v{version}.zip
