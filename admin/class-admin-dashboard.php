@@ -1256,33 +1256,62 @@ class VietShield_Admin_Dashboard {
             wp_send_json_error('Unauthorized');
         }
 
-        // Force check for updates by calling the updater
+        // Clear cache so we get fresh data from GitHub
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/class-plugin-updater.php';
         $updater = \VietShield\PluginUpdater::get_instance();
-        $updater->force_check();
+        $updater->clear_cache();
 
-        // Get the updated transient
-        $update_transient = get_site_transient('update_plugins');
-        $plugin_file = 'vietshield-waf/vietshield-waf.php';
-        $has_update = isset($update_transient->response[$plugin_file]);
-        $update_info = $has_update ? $update_transient->response[$plugin_file] : null;
+        // Directly fetch latest release from GitHub API
+        $api_url = 'https://api.github.com/repos/VietShield-Security/vietshield-waf/releases/latest';
+        $response = wp_remote_get($api_url, [
+            'timeout' => 15,
+            'headers' => [
+                'Accept'     => 'application/vnd.github.v3+json',
+                'User-Agent' => 'VietShield-WAF/' . VIETSHIELD_VERSION,
+            ],
+        ]);
 
-        if ($has_update && $update_info) {
+        if (is_wp_error($response)) {
+            wp_send_json_error(__('Cannot connect to GitHub: ', 'vietshield-waf') . $response->get_error_message());
+            return;
+        }
+
+        $code = wp_remote_retrieve_response_code($response);
+        if ($code !== 200) {
+            wp_send_json_error(sprintf(__('GitHub API returned HTTP %d', 'vietshield-waf'), $code));
+            return;
+        }
+
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+        if (!is_array($data) || empty($data['tag_name'])) {
+            wp_send_json_error(__('Invalid response from GitHub API.', 'vietshield-waf'));
+            return;
+        }
+
+        // Parse version from tag (handle v1.0.9, v.1.0.9, 1.0.9)
+        $remote_version = preg_replace('/^[vV]\.?/', '', $data['tag_name']);
+        $current_version = VIETSHIELD_VERSION;
+
+        if (version_compare($remote_version, $current_version, '>')) {
+            // Also refresh the WP update transient so the update button works
+            delete_site_transient('update_plugins');
+            wp_update_plugins();
+
             wp_send_json_success([
                 'has_update' => true,
-                'current_version' => VIETSHIELD_VERSION,
-                'new_version' => $update_info->new_version,
+                'current_version' => $current_version,
+                'new_version' => $remote_version,
                 'update_url' => admin_url('update-core.php'),
                 'message' => sprintf(
                     /* translators: %s: new version number */
                     __('New version available: v%s', 'vietshield-waf'),
-                    $update_info->new_version
+                    $remote_version
                 ),
             ]);
         } else {
             wp_send_json_success([
                 'has_update' => false,
-                'current_version' => VIETSHIELD_VERSION,
+                'current_version' => $current_version,
                 'message' => __('You are running the latest version.', 'vietshield-waf'),
             ]);
         }
