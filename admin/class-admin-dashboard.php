@@ -327,7 +327,19 @@ class VietShield_Admin_Dashboard {
         } else {
             $sanitized['whitelisted_ips'] = [];
         }
-        
+
+        if (!empty($input['whitelisted_urls'])) {
+            $urls = is_array($input['whitelisted_urls']) ? $input['whitelisted_urls'] : explode("\n", $input['whitelisted_urls']);
+            $urls = array_map('trim', $urls);
+            $sanitized['whitelisted_urls'] = array_filter($urls, function($url) {
+                // Must start with /
+                return !empty($url) && strpos($url, '/') === 0;
+            });
+            $sanitized['whitelisted_urls'] = array_values($sanitized['whitelisted_urls']);
+        } else {
+            $sanitized['whitelisted_urls'] = [];
+        }
+
         if (!empty($input['blacklisted_ips'])) {
             $ips = is_array($input['blacklisted_ips']) ? $input['blacklisted_ips'] : explode("\n", $input['blacklisted_ips']);
             $ips = array_map('trim', $ips);

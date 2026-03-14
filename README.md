@@ -4,14 +4,14 @@
 **Tags:** security, firewall, waf, malware, protection  
 **Requires at least:** 5.0  
 **Tested up to:** 6.9  
-**Stable tag:** 1.0.9
+**Stable tag:** 1.1.0
 **Requires PHP:** 7.4
 **License:** GPLv2 or later
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
 High-performance Web Application Firewall for WordPress with real-time threat detection and blocking.
 
-**Version:** 1.0.9
+**Version:** 1.1.0
 **Web:** [https://vietshield.org](https://vietshield.org)  
 **Recommended Webserver:** Nginx/Openresty
 
@@ -171,6 +171,13 @@ You can get support through our [GitHub Issues](https://github.com/VietShield-Se
 ---
 
 ## 📝 Changelog
+
+### Version 1.1.0 (2026-03-14)
+**New Features:**
+- URL Whitelist: bypass WAF checks for specific URL paths with exact match (`/my-page/`) and wildcard support (`/api/*`)
+
+**Improvements:**
+- Renamed "Manual IP Lists" section to "Custom Whitelist" for clarity
 
 ### Version 1.0.9 (2026-03-10)
 **Critical Fixes:**

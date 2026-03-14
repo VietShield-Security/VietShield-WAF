@@ -941,7 +941,7 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                     <hr style="margin: 30px 0;">
                     <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 16px; font-weight: 600;">
                         <span class="dashicons dashicons-edit" style="font-size: 18px; vertical-align: middle;"></span>
-                        <?php esc_html_e('Manual IP Lists', 'vietshield-waf'); ?>
+                        <?php esc_html_e('Custom Whitelist', 'vietshield-waf'); ?>
                     </h3>
                     <table class="form-table">
                         <tr>
@@ -951,6 +951,15 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                                     echo esc_textarea(implode("\n", $vswaf_options['whitelisted_ips'] ?? [])); 
                                 ?></textarea>
                                 <p class="description"><?php esc_html_e('One IP per line. Supports CIDR notation (e.g., 192.168.1.0/24)', 'vietshield-waf'); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e('Whitelisted URLs', 'vietshield-waf'); ?></th>
+                            <td>
+                                <textarea name="vietshield_options[whitelisted_urls]" rows="5" class="large-text code"><?php
+                                    echo esc_textarea(implode("\n", $vswaf_options['whitelisted_urls'] ?? []));
+                                ?></textarea>
+                                <p class="description"><?php esc_html_e('One URL path per line. Requests matching these paths will bypass WAF checks. Supports exact match (e.g., /my-page/) and prefix match with wildcard (e.g., /api/*).', 'vietshield-waf'); ?></p>
                             </td>
                         </tr>
                         <tr>

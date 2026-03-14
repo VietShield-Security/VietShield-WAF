@@ -185,7 +185,13 @@ class WAFEngine {
             $this->log_request('allowed', '', '', 'low');
             return;
         }
-        
+
+        // Check URL whitelist
+        if ($this->is_url_whitelisted($this->request_data['uri'] ?? '')) {
+            $this->log_request('allowed', '', '', 'low');
+            return;
+        }
+
         // Check if admin and whitelist_admins is enabled
         if ($this->is_whitelisted_admin()) {
             return;
@@ -604,7 +610,47 @@ class WAFEngine {
         
         return false;
     }
-    
+
+    /**
+     * Check if the request URI matches a whitelisted URL pattern
+     *
+     * @param string $uri Request URI
+     * @return bool
+     */
+    private function is_url_whitelisted($uri) {
+        $whitelisted_urls = $this->get_option('whitelisted_urls', []);
+        if (empty($whitelisted_urls) || empty($uri)) {
+            return false;
+        }
+
+        // Parse URI to get path only (without query string)
+        $path = wp_parse_url($uri, PHP_URL_PATH);
+        if (!$path) {
+            $path = $uri;
+        }
+
+        foreach ($whitelisted_urls as $pattern) {
+            if (empty($pattern)) {
+                continue;
+            }
+
+            // Wildcard match: /path/* matches /path/ and anything under it
+            if (substr($pattern, -2) === '/*') {
+                $prefix = substr($pattern, 0, -2);
+                if ($path === $prefix || strpos($path, $prefix . '/') === 0) {
+                    return true;
+                }
+            } else {
+                // Exact match
+                if ($path === $pattern) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Early check for admin request using raw server variables
      * This is called before request analysis for faster detection

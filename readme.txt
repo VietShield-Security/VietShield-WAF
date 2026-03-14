@@ -3,7 +3,7 @@ Contributors: vietshield
 Tags: security, firewall, waf, malware, protection
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 1.0.9
+Stable tag: 1.1.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -73,6 +73,10 @@ You can manually remove your IP from the `vietshield_ip_lists` database table us
 3.  **Live traffic logs**
 
 == Changelog ==
+
+= 1.1.0 =
+*   New: URL Whitelist - bypass WAF checks for specific URL paths (exact match and wildcard support)
+*   Improved: Renamed "Manual IP Lists" section to "Custom Whitelist" for clarity
 
 = 1.0.9 =
 *   Fixed: Critical 500 error when early blocker writes .user.ini before blocker file exists
