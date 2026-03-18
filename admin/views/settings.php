@@ -643,6 +643,136 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                     </table>
                 </div>
             </div>
+
+            <!-- Hide Admin Login Card -->
+            <div class="vietshield-card">
+                <div class="card-header">
+                    <h2>
+                        <span class="dashicons dashicons-hidden"></span>
+                        <?php esc_html_e('Hide Admin Login', 'vietshield-waf'); ?>
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p class="description mb-20">
+                        <?php esc_html_e('Hide the default WordPress login page (wp-login.php, /wp-admin) and use a custom URL instead. Unauthorized access to default login URLs will return 403 Forbidden.', 'vietshield-waf'); ?>
+                    </p>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e('Enable Hide Login', 'vietshield-waf'); ?></th>
+                            <td>
+                                <label class="vietshield-switch">
+                                    <input type="checkbox" name="vietshield_options[hide_login_enabled]" value="1"
+                                           <?php checked($vswaf_options['hide_login_enabled'] ?? false); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <p class="description"><?php esc_html_e('Enable custom login URL and block default login pages.', 'vietshield-waf'); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e('Custom Login Slug', 'vietshield-waf'); ?></th>
+                            <td>
+                                <code><?php echo esc_html(home_url('/')); ?></code>
+                                <input type="text" name="vietshield_options[hide_login_slug]"
+                                       value="<?php echo esc_attr($vswaf_options['hide_login_slug'] ?? ''); ?>"
+                                       class="regular-text" placeholder="my-secret-login"
+                                       pattern="[a-z0-9\-]+" style="width: 200px;">
+                                <p class="description">
+                                    <?php esc_html_e('Enter a custom slug for your login page. Use only lowercase letters, numbers, and hyphens.', 'vietshield-waf'); ?>
+                                    <br>
+                                    <strong><?php esc_html_e('Example:', 'vietshield-waf'); ?></strong>
+                                    <?php esc_html_e('If you enter "hideme", your login URL will be', 'vietshield-waf'); ?>
+                                    <code><?php echo esc_html(home_url('/hideme/')); ?></code>
+                                </p>
+                                <p class="description" style="color: #d63638;">
+                                    <span class="dashicons dashicons-warning" style="font-size: 16px;"></span>
+                                    <?php esc_html_e('Important: Remember your custom login URL! If you forget it, you will need to disable this feature via FTP or database.', 'vietshield-waf'); ?>
+                                </p>
+                                <?php if (!empty($vswaf_options['hide_login_enabled']) && !empty($vswaf_options['hide_login_slug'])) : ?>
+                                <p class="description" style="color: #00a32a; margin-top: 8px;">
+                                    <span class="dashicons dashicons-yes-alt" style="font-size: 16px;"></span>
+                                    <?php esc_html_e('Current login URL:', 'vietshield-waf'); ?>
+                                    <a href="<?php echo esc_url(home_url('/' . $vswaf_options['hide_login_slug'] . '/')); ?>" target="_blank">
+                                        <strong><?php echo esc_html(home_url('/' . $vswaf_options['hide_login_slug'] . '/')); ?></strong>
+                                    </a>
+                                </p>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin Access Control Card -->
+            <div class="vietshield-card">
+                <div class="card-header">
+                    <h2>
+                        <span class="dashicons dashicons-admin-users"></span>
+                        <?php esc_html_e('Admin Access Control', 'vietshield-waf'); ?>
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p class="description mb-20">
+                        <?php esc_html_e('Control which administrator accounts can access the WordPress admin dashboard. Even if a hacker creates an admin account via exploit, they cannot access the admin panel unless explicitly authorized here.', 'vietshield-waf'); ?>
+                    </p>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e('Enable Access Control', 'vietshield-waf'); ?></th>
+                            <td>
+                                <label class="vietshield-switch">
+                                    <input type="checkbox" name="vietshield_options[admin_access_control_enabled]" value="1"
+                                           <?php checked($vswaf_options['admin_access_control_enabled'] ?? false); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <p class="description"><?php esc_html_e('Only allow selected administrator accounts to access the admin dashboard. Unauthorized admins will be blocked.', 'vietshield-waf'); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e('Authorized Administrators', 'vietshield-waf'); ?></th>
+                            <td>
+                                <?php
+                                $admin_users = get_users(['role' => 'administrator', 'orderby' => 'ID', 'order' => 'ASC']);
+                                $allowed_users = $vswaf_options['admin_access_allowed_users'] ?? [];
+                                $current_user_id = get_current_user_id();
+
+                                if (!empty($admin_users)) :
+                                    foreach ($admin_users as $admin_user) :
+                                        $is_checked = in_array((int) $admin_user->ID, array_map('intval', $allowed_users), true);
+                                        $is_current = ($admin_user->ID === $current_user_id);
+                                ?>
+                                <div style="margin-bottom: 8px; padding: 8px 12px; background: <?php echo $is_current ? '#f0f7ff' : '#f9f9f9'; ?>; border-radius: 4px; border-left: 3px solid <?php echo $is_current ? '#2271b1' : '#ddd'; ?>;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox"
+                                               name="vietshield_options[admin_access_allowed_users][]"
+                                               value="<?php echo esc_attr($admin_user->ID); ?>"
+                                               <?php checked($is_checked); ?>
+                                               <?php if ($is_current) echo 'onclick="return false;" checked'; ?>>
+                                        <span>
+                                            <strong><?php echo esc_html($admin_user->display_name); ?></strong>
+                                            <span style="color: #666;">(<?php echo esc_html($admin_user->user_login); ?>)</span>
+                                            <span style="color: #999; font-size: 12px;"> — <?php echo esc_html($admin_user->user_email); ?></span>
+                                            <?php if ($is_current) : ?>
+                                                <span style="color: #2271b1; font-size: 12px; font-weight: bold;"> — <?php esc_html_e('You (always authorized)', 'vietshield-waf'); ?></span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </label>
+                                </div>
+                                <?php
+                                    endforeach;
+                                endif;
+                                ?>
+                                <p class="description" style="margin-top: 12px;">
+                                    <span class="dashicons dashicons-info" style="font-size: 16px; color: #2271b1;"></span>
+                                    <?php esc_html_e('Select which administrator accounts are authorized to access the admin dashboard. Your own account is always included for safety.', 'vietshield-waf'); ?>
+                                </p>
+                                <p class="description" style="color: #d63638;">
+                                    <span class="dashicons dashicons-warning" style="font-size: 16px;"></span>
+                                    <?php esc_html_e('Unauthorized admin accounts will have their sensitive capabilities removed (install/edit plugins, edit users, manage options, etc.) and will be blocked from accessing admin pages.', 'vietshield-waf'); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
         </div>
         <!-- Scanner -->
         <div class="vietshield-tab-content" id="scanner">

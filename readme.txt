@@ -3,7 +3,7 @@ Contributors: vietshield
 Tags: security, firewall, waf, malware, protection
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -23,6 +23,8 @@ VietShield WAF intercepts requests early in the WordPress loading process to fil
 *   **Geo-Blocking:** Block traffic from high-risk countries.
 *   **Malware Scanner:** Integrated file integrity monitoring and malware detection for themes and plugins.
 *   **Login Security:** Protects against brute-force attacks and author enumeration.
+*   **Hide Admin Login:** Replace default login URLs with a custom slug; unauthorized access returns 403.
+*   **Admin Access Control:** Restrict which admin accounts can access the dashboard, preventing unauthorized admin exploitation.
 
 **Contact:** hello@vietshield.org
 
@@ -73,6 +75,13 @@ You can manually remove your IP from the `vietshield_ip_lists` database table us
 3.  **Live traffic logs**
 
 == Changelog ==
+
+= 1.1.1 =
+*   New: Hide Admin Login - Custom login URL slug, blocks default /wp-login.php and /wp-admin with 403 Forbidden
+*   New: Admin Access Control - Restrict which admin accounts can access the dashboard, prevents unauthorized admin exploitation
+*   New: Block page caching - 403 pages cached as static HTML per IP per day for better performance
+*   Improved: Safety check to always include current user in authorized admins list
+*   Improved: Daily auto-cleanup of expired block page cache files
 
 = 1.1.0 =
 *   New: URL Whitelist - bypass WAF checks for specific URL paths (exact match and wildcard support)

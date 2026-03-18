@@ -4,14 +4,14 @@
 **Tags:** security, firewall, waf, malware, protection  
 **Requires at least:** 5.0  
 **Tested up to:** 6.9  
-**Stable tag:** 1.1.0
+**Stable tag:** 1.1.1
 **Requires PHP:** 7.4
 **License:** GPLv2 or later
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
 High-performance Web Application Firewall for WordPress with real-time threat detection and blocking.
 
-**Version:** 1.1.0
+**Version:** 1.1.1
 **Web:** [https://vietshield.org](https://vietshield.org)  
 **Recommended Webserver:** Nginx/Openresty
 
@@ -114,6 +114,21 @@ Protect your dashboard from unauthorized access.
 *   **Author Enumeration**: Blocks attempts to fish for usernames.
 *   **Usage**: Configure thresholds and email notifications in **Login Security** settings.
 
+### 7. Hide Admin Login
+Hide the default WordPress login page to prevent automated attacks.
+*   **Custom Login URL**: Replace `/wp-login.php` and `/wp-admin` with a custom slug (e.g., `/my-secret-login`).
+*   **403 Block Page**: Unauthorized access to default login URLs returns a styled 403 Forbidden page with cached static HTML for performance.
+*   **Smart Exclusions**: Automatically allows `admin-ajax.php`, `admin-post.php`, REST API, WP Cron, and XML-RPC.
+*   **Usage**: Enable in **Settings > Login Security > Hide Admin Login**, set your custom slug, and save.
+
+### 8. Admin Access Control
+Control which administrator accounts can access the WordPress admin dashboard.
+*   **Authorized Admins Only**: Select specific admin accounts that are allowed to access the dashboard.
+*   **Anti-Exploit Protection**: Even if a hacker creates an admin account via exploit, they cannot access admin unless explicitly authorized.
+*   **Capability Restriction**: Unauthorized admins have sensitive capabilities removed (install plugins, edit users, manage options, etc.).
+*   **Self-Lock Prevention**: Your own account is always included to prevent accidental lockout.
+*   **Usage**: Enable in **Settings > Login Security > Admin Access Control**, select authorized admins, and save.
+
 ---
 
 ## 🌐 External Services
@@ -165,12 +180,28 @@ Yes, but we recommend using VietShield as your primary WAF. It works alongside b
 ### How does the Threat Intelligence feature work?
 VietShield syncs with our community threat network to receive real-time IP blacklists. You can choose 1-day, 7-day, or 30-day feeds. We also auto-whitelist legitimate crawlers like Googlebot and Cloudflare IPs to prevent false positives.
 
+### I forgot my custom login URL! How do I log in?
+If you enabled Hide Admin Login and forgot your custom slug, you can:
+1. Access your database via phpMyAdmin, find the `wp_options` table, look for `vietshield_options`, and change `hide_login_enabled` to `false`
+2. Rename the `vietshield-waf` plugin folder via FTP/File Manager to temporarily disable the plugin
+
 ### Where can I get support if I need help?
 You can get support through our [GitHub Issues](https://github.com/VietShield-Security/VietShield-WAF/issues) page or email us at [support@vietshield.org](mailto:support@vietshield.org). Our community and team are active in helping users configure and optimize their security.
 
 ---
 
 ## 📝 Changelog
+
+### Version 1.1.1 (2026-03-18)
+**New Features:**
+- Hide Admin Login: Replace default `/wp-login.php` and `/wp-admin` with a custom login URL slug, unauthorized access returns 403 Forbidden
+- Admin Access Control: Restrict which administrator accounts can access the WordPress admin dashboard, preventing unauthorized admin accounts (e.g., created by exploits) from accessing admin
+- Block page caching: 403 block pages are cached as static HTML files per IP per day, subsequent requests serve the cached file directly for better performance
+
+**Improvements:**
+- Block page cache auto-cleanup via daily cron job
+- Safety check: current user is always included in authorized admins list to prevent self-lockout
+- Reserved WordPress slugs (wp-admin, login, admin, etc.) are blocked from being used as custom login slug
 
 ### Version 1.1.0 (2026-03-14)
 **New Features:**

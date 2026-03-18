@@ -574,6 +574,10 @@ class VietShield_Activator {
             'threat_intel_enabled' => true, // Enable by default
             'threat_intel_category' => '1d', // Default to 1d category
             'log_retention_days' => 30, // Keep logs for 30 days
+            'hide_login_enabled' => false,
+            'hide_login_slug' => '',
+            'admin_access_control_enabled' => false,
+            'admin_access_allowed_users' => [],
             'early_blocking_enabled' => true, // Enable early blocking for performance
             // RCE Whitelist Patterns (to avoid blocking Google Ads and legitimate traffic)
             'rce_whitelist_patterns' => [

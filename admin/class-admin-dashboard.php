@@ -257,7 +257,8 @@ class VietShield_Admin_Dashboard {
             'country_blocking_enabled', 'block_unknown_countries',
             'login_security_enabled', 'login_notifications_enabled', 'login_honeypot_enabled',
             'file_scanner_enabled', 'malware_scanner_enabled', 'threat_intel_enabled',
-            'cloudflare_enabled', 'whitelist_googlebot'
+            'cloudflare_enabled', 'whitelist_googlebot',
+            'hide_login_enabled', 'admin_access_control_enabled'
         ];
         
         foreach ($bool_options as $opt) {
@@ -401,7 +402,38 @@ class VietShield_Admin_Dashboard {
         // reCAPTCHA v3 min score
         $recaptcha_score = floatval($input['recaptcha_v3_min_score'] ?? 0.5);
         $sanitized['recaptcha_v3_min_score'] = max(0, min(1, $recaptcha_score));
-        
+
+        // Hide Admin Login slug
+        $hide_login_slug = sanitize_title($input['hide_login_slug'] ?? '');
+        // Prevent reserved WordPress slugs
+        $reserved_slugs = ['wp-admin', 'wp-login', 'wp-login.php', 'login', 'admin', 'wp-register', 'register', 'wp-signup'];
+        if (in_array($hide_login_slug, $reserved_slugs, true)) {
+            $hide_login_slug = '';
+        }
+        $sanitized['hide_login_slug'] = $hide_login_slug;
+
+        // Admin Access Control - allowed user IDs
+        if (!empty($input['admin_access_allowed_users']) && is_array($input['admin_access_allowed_users'])) {
+            $sanitized['admin_access_allowed_users'] = array_map('absint', $input['admin_access_allowed_users']);
+            $sanitized['admin_access_allowed_users'] = array_filter($sanitized['admin_access_allowed_users']);
+            $sanitized['admin_access_allowed_users'] = array_values($sanitized['admin_access_allowed_users']);
+        } else {
+            // If admin access control is enabled but no users selected, auto-include current user
+            if (!empty($input['admin_access_control_enabled'])) {
+                $sanitized['admin_access_allowed_users'] = [get_current_user_id()];
+            } else {
+                $sanitized['admin_access_allowed_users'] = [];
+            }
+        }
+
+        // Safety check: always include current user when admin access control is enabled
+        if (!empty($sanitized['admin_access_control_enabled']) && !empty($sanitized['admin_access_allowed_users'])) {
+            $current_user_id = get_current_user_id();
+            if (!in_array($current_user_id, $sanitized['admin_access_allowed_users'], true)) {
+                $sanitized['admin_access_allowed_users'][] = $current_user_id;
+            }
+        }
+
         // RCE Whitelist Patterns
         if (!empty($input['rce_whitelist_patterns'])) {
             // Check if input is already an array (from previous save or default)

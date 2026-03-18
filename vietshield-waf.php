@@ -3,7 +3,7 @@
  * Plugin Name: VietShield WAF
  * Plugin URI: https://vietshield.org
  * Description: High-performance Web Application Firewall (WAF) for WordPress. Protects against SQL Injection, XSS, RCE, and more with advanced traffic analysis and real-time blocking.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: VietShield Security
  * Author URI: https://github.com/VietShield-Security
  * License: GPL v2 or later
@@ -20,11 +20,11 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('VIETSHIELD_VERSION', '1.1.0');
+define('VIETSHIELD_VERSION', '1.1.1');
 define('VIETSHIELD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('VIETSHIELD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('VIETSHIELD_PLUGIN_BASENAME', plugin_basename(__FILE__));
-define('VIETSHIELD_DB_VERSION', '1.1.0');
+define('VIETSHIELD_DB_VERSION', '1.1.1');
 
 /**
  * Autoloader for plugin classes
@@ -54,6 +54,8 @@ spl_autoload_register(function ($class) {
         'firewall/ipmanager' => 'firewall/class-ip-manager.php',
         'firewall/ratelimiter' => 'firewall/class-rate-limiter.php',
         'scanner/filescanner' => 'scanner/class-file-scanner.php',
+        'integrations/hidelogin' => 'integrations/class-hide-login.php',
+        'integrations/adminaccesscontrol' => 'integrations/class-admin-access-control.php',
     ];
 
     if (isset($class_map[$relative_class])) {
@@ -131,6 +133,18 @@ function vietshield_init()
     if (isset($options['login_security_enabled']) && $options['login_security_enabled']) {
         require_once VIETSHIELD_PLUGIN_DIR . 'includes/integrations/class-login-security.php';
         new \VietShield\Integrations\LoginSecurity();
+    }
+
+    // Initialize Hide Admin Login
+    if (!empty($options['hide_login_enabled']) && !empty($options['hide_login_slug'])) {
+        require_once VIETSHIELD_PLUGIN_DIR . 'includes/integrations/class-hide-login.php';
+        new \VietShield\Integrations\HideLogin();
+    }
+
+    // Initialize Admin Access Control
+    if (!empty($options['admin_access_control_enabled'])) {
+        require_once VIETSHIELD_PLUGIN_DIR . 'includes/integrations/class-admin-access-control.php';
+        new \VietShield\Integrations\AdminAccessControl();
     }
 
     // Initialize admin
@@ -240,6 +254,10 @@ add_action('vietshield_threat_intel_initial_sync', function () {
 add_action('vietshield_cleanup_logs', function () {
     require_once VIETSHIELD_PLUGIN_DIR . 'includes/class-scheduled-tasks.php';
     VietShield_Scheduled_Tasks::cleanup_logs();
+
+    // Cleanup expired block page cache files
+    require_once VIETSHIELD_PLUGIN_DIR . 'includes/class-vietshield-helpers.php';
+    VietShield_Helpers::cleanup_block_cache();
 });
 
 add_action('vietshield_aggregate_stats', function () {
