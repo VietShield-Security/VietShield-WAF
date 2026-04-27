@@ -3,7 +3,7 @@
  * Plugin Name: VietShield WAF
  * Plugin URI: https://vietshield.org
  * Description: High-performance Web Application Firewall (WAF) for WordPress. Protects against SQL Injection, XSS, RCE, and more with advanced traffic analysis and real-time blocking.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: VietShield Security
  * Author URI: https://github.com/VietShield-Security
  * License: GPL v2 or later
@@ -20,11 +20,11 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('VIETSHIELD_VERSION', '1.1.1');
+define('VIETSHIELD_VERSION', '1.1.2');
 define('VIETSHIELD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('VIETSHIELD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('VIETSHIELD_PLUGIN_BASENAME', plugin_basename(__FILE__));
-define('VIETSHIELD_DB_VERSION', '1.1.1');
+define('VIETSHIELD_DB_VERSION', '1.1.2');
 
 /**
  * Autoloader for plugin classes
@@ -54,6 +54,7 @@ spl_autoload_register(function ($class) {
         'firewall/ipmanager' => 'firewall/class-ip-manager.php',
         'firewall/ratelimiter' => 'firewall/class-rate-limiter.php',
         'scanner/filescanner' => 'scanner/class-file-scanner.php',
+        'scanner/malwarescanner' => 'scanner/class-malware-scanner.php',
         'integrations/hidelogin' => 'integrations/class-hide-login.php',
         'integrations/adminaccesscontrol' => 'integrations/class-admin-access-control.php',
     ];

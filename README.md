@@ -4,14 +4,14 @@
 **Tags:** security, firewall, waf, malware, protection  
 **Requires at least:** 5.0  
 **Tested up to:** 6.9  
-**Stable tag:** 1.1.1
+**Stable tag:** 1.1.2
 **Requires PHP:** 7.4
 **License:** GPLv2 or later
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
 High-performance Web Application Firewall for WordPress with real-time threat detection and blocking.
 
-**Version:** 1.1.1
+**Version:** 1.1.2
 **Web:** [https://vietshield.org](https://vietshield.org)  
 **Recommended Webserver:** Nginx/Openresty
 
@@ -191,6 +191,14 @@ You can get support through our [GitHub Issues](https://github.com/VietShield-Se
 ---
 
 ## 📝 Changelog
+
+### Version 1.1.2 (2026-04-27)
+**Improvements:**
+- Core integrity scanner: clearer zoning and machine-readable reason codes for modified/unknown core files
+- Malware scanner: staged checks (baseline hash reuse, lighter prefilter before deep signatures), unified risk scoring and severity mapping
+- Database schema bump for new scanner metadata fields; automatic upgrade on plugin load
+- Scanner admin UI: optional columns for zone, reason, and risk score; malware scope can include mu-plugins
+- Autoloader: `MalwareScanner` registered for consistent class loading
 
 ### Version 1.1.1 (2026-03-18)
 **New Features:**

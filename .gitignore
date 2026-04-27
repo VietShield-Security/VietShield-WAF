@@ -7,6 +7,9 @@
 ehthumbs.db
 Thumbs.db
 
+# Cursor / agents
+.claude/
+
 # IDE and editor files
 .idea/
 .vscode/

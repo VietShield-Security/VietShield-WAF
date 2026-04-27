@@ -352,32 +352,43 @@ class ThreatIntelligence {
     /**
      * Schedule automatic sync based on category
      */
-    public static function schedule_sync($category = null) {
-        // Clear existing schedule
-        $timestamp = wp_next_scheduled('vietshield_threat_intel_sync');
-        if ($timestamp) {
-            wp_unschedule_event($timestamp, 'vietshield_threat_intel_sync');
-        }
-        
+    public static function schedule_sync($category = null, $force = false) {
         if (empty($category)) {
             $options = get_option('vietshield_options', []);
             $category = $options['threat_intel_category'] ?? '';
         }
-        
+
         // Only schedule if enabled and category is set
         if (empty($category) || !self::is_enabled()) {
+            // Remove stale schedules when feature/category is disabled
+            while ($timestamp = wp_next_scheduled('vietshield_threat_intel_sync')) {
+                wp_unschedule_event($timestamp, 'vietshield_threat_intel_sync');
+            }
             return false;
         }
-        
+
+        $current_category = get_option('vietshield_threat_intel_sync_category', '');
+        $next_timestamp = wp_next_scheduled('vietshield_threat_intel_sync');
+
+        // Keep existing schedule when nothing changed to avoid pushing the run forever.
+        if (!$force && $next_timestamp && $current_category === $category) {
+            return true;
+        }
+
+        // Clear existing schedule before rescheduling (category change/manual force).
+        while ($timestamp = wp_next_scheduled('vietshield_threat_intel_sync')) {
+            wp_unschedule_event($timestamp, 'vietshield_threat_intel_sync');
+        }
+
         $interval = self::get_sync_interval($category);
         $next_run = time() + ($interval * HOUR_IN_SECONDS);
-        
+
         // Schedule single event (will reschedule itself after running)
         wp_schedule_single_event($next_run, 'vietshield_threat_intel_sync');
-        
+
         // Store category for cron handler
         update_option('vietshield_threat_intel_sync_category', $category);
-        
+
         return true;
     }
     
@@ -410,7 +421,7 @@ class ThreatIntelligence {
         }
         
         // Reschedule next sync
-        self::schedule_sync($category);
+        self::schedule_sync($category, true);
     }
     
     /**

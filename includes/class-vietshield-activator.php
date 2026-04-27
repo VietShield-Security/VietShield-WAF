@@ -159,6 +159,60 @@ class VietShield_Activator {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
             $wpdb->query("ALTER TABLE `$table_logs` ADD COLUMN `as_name` VARCHAR(255) DEFAULT '' AFTER `as_number`");
         }
+
+        self::ensure_logs_action_enum($table_logs);
+        self::ensure_scanner_table_columns();
+    }
+
+    /**
+     * Add metadata columns to scanner item tables (reason/zone, risk score).
+     */
+    private static function ensure_scanner_table_columns() {
+        global $wpdb;
+
+        $file_items = $wpdb->prefix . 'vietshield_file_scan_items';
+        $malware_items = $wpdb->prefix . 'vietshield_malware_scan_items';
+
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $file_items)) === $file_items) {
+            if (empty($wpdb->get_results("SHOW COLUMNS FROM `{$file_items}` LIKE 'reason_code'", ARRAY_A))) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+                $wpdb->query("ALTER TABLE `{$file_items}` ADD COLUMN `reason_code` VARCHAR(64) NOT NULL DEFAULT '' AFTER `file_type`");
+            }
+            if (empty($wpdb->get_results("SHOW COLUMNS FROM `{$file_items}` LIKE 'location_zone'", ARRAY_A))) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+                $wpdb->query("ALTER TABLE `{$file_items}` ADD COLUMN `location_zone` VARCHAR(32) NOT NULL DEFAULT '' AFTER `reason_code`");
+            }
+        }
+
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $malware_items)) === $malware_items) {
+            if (empty($wpdb->get_results("SHOW COLUMNS FROM `{$malware_items}` LIKE 'risk_score'", ARRAY_A))) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+                $wpdb->query("ALTER TABLE `{$malware_items}` ADD COLUMN `risk_score` SMALLINT UNSIGNED NOT NULL DEFAULT 0 AFTER `findings`");
+            }
+        }
+    }
+
+    /**
+     * Ensure logs.action enum supports all runtime values.
+     *
+     * @param string $table_logs Logs table name.
+     */
+    private static function ensure_logs_action_enum($table_logs) {
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema check
+        $column = $wpdb->get_row("SHOW COLUMNS FROM `$table_logs` LIKE 'action'", ARRAY_A);
+        if (empty($column['Type'])) {
+            return;
+        }
+
+        if (strpos($column['Type'], "'captcha_challenge'") === false) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
+            $wpdb->query(
+                "ALTER TABLE `$table_logs` MODIFY COLUMN `action` ENUM('allowed', 'blocked', 'monitored', 'rate_limited', 'captcha_challenge') DEFAULT 'allowed'"
+            );
+        }
     }
 
     /**
@@ -291,7 +345,7 @@ class VietShield_Activator {
             user_agent TEXT,
             referer TEXT,
             post_data LONGTEXT,
-            action ENUM('allowed', 'blocked', 'monitored', 'rate_limited') DEFAULT 'allowed',
+            action ENUM('allowed', 'blocked', 'monitored', 'rate_limited', 'captcha_challenge') DEFAULT 'allowed',
             rule_id VARCHAR(50) DEFAULT '',
             rule_matched TEXT,
             attack_type VARCHAR(50) DEFAULT '',
@@ -420,6 +474,8 @@ class VietShield_Activator {
             file_size BIGINT(20) DEFAULT 0,
             file_mtime DATETIME DEFAULT NULL,
             file_type VARCHAR(20) DEFAULT 'core',
+            reason_code VARCHAR(64) NOT NULL DEFAULT '',
+            location_zone VARCHAR(32) NOT NULL DEFAULT '',
             PRIMARY KEY (id),
             KEY idx_scan (scan_id),
             KEY idx_status (status),
@@ -452,6 +508,7 @@ class VietShield_Activator {
             file_type VARCHAR(20) DEFAULT 'plugin',
             severity ENUM('critical', 'high', 'medium', 'low') DEFAULT 'low',
             findings LONGTEXT,
+            risk_score SMALLINT UNSIGNED NOT NULL DEFAULT 0,
             file_size BIGINT(20) DEFAULT 0,
             file_mtime DATETIME DEFAULT NULL,
             quarantined TINYINT(1) DEFAULT 0,

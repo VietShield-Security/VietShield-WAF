@@ -83,7 +83,7 @@ class VietShield_Scheduled_Tasks {
                 "SELECT 
                     SUM(CASE WHEN action = 'blocked' THEN 1 ELSE 0 END) as blocked,
                     SUM(CASE WHEN action = 'rate_limited' THEN 1 ELSE 0 END) as rate_limited,
-                    SUM(CASE WHEN action = 'threat_intelligence' THEN 1 ELSE 0 END) as threat_intel,
+                    SUM(CASE WHEN action = 'blocked' AND (attack_type = 'threat_intelligence' OR attack_type = 'threat_intel' OR rule_id = 'threat_intelligence') THEN 1 ELSE 0 END) as threat_intel,
                     SUM(CASE WHEN attack_type = 'sqli' THEN 1 ELSE 0 END) as sqli,
                     SUM(CASE WHEN attack_type = 'xss' THEN 1 ELSE 0 END) as xss,
                     SUM(CASE WHEN attack_type = 'rce' THEN 1 ELSE 0 END) as rce,

@@ -868,13 +868,16 @@ $vswaf_early_blocking_enabled = $vswaf_options['early_blocking_enabled'];
                             <td>
                                 <select name="vietshield_options[malware_scan_scope]">
                                     <option value="all" <?php selected($vswaf_options['malware_scan_scope'] ?? 'all', 'all'); ?>>
-                                        <?php esc_html_e('All (Themes, Plugins, Uploads)', 'vietshield-waf'); ?>
+                                        <?php esc_html_e('All (Themes, Plugins, MU-Plugins, Uploads)', 'vietshield-waf'); ?>
                                     </option>
                                     <option value="themes" <?php selected($vswaf_options['malware_scan_scope'] ?? 'all', 'themes'); ?>>
                                         <?php esc_html_e('Themes Only', 'vietshield-waf'); ?>
                                     </option>
                                     <option value="plugins" <?php selected($vswaf_options['malware_scan_scope'] ?? 'all', 'plugins'); ?>>
                                         <?php esc_html_e('Plugins Only', 'vietshield-waf'); ?>
+                                    </option>
+                                    <option value="mu-plugins" <?php selected($vswaf_options['malware_scan_scope'] ?? 'all', 'mu-plugins'); ?>>
+                                        <?php esc_html_e('MU-Plugins Only', 'vietshield-waf'); ?>
                                     </option>
                                     <option value="uploads" <?php selected($vswaf_options['malware_scan_scope'] ?? 'all', 'uploads'); ?>>
                                         <?php esc_html_e('Uploads Only', 'vietshield-waf'); ?>

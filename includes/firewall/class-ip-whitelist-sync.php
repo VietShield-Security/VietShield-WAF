@@ -17,10 +17,11 @@ class IPWhitelistSync {
      * Googlebot JSON endpoints
      */
     private static $googlebot_urls = [
-        'googlebot' => 'https://developers.google.com/search/apis/ipranges/googlebot.json',
-        'special-crawlers' => 'https://developers.google.com/search/apis/ipranges/special-crawlers.json',
-        'user-triggered-fetchers' => 'https://developers.google.com/search/apis/ipranges/user-triggered-fetchers.json',
-        'user-triggered-fetchers-google' => 'https://developers.google.com/search/apis/ipranges/user-triggered-fetchers-google.json',
+        'common-crawlers' => 'https://developers.google.com/crawling/ipranges/common-crawlers.json',
+        'special-crawlers' => 'https://developers.google.com/crawling/ipranges/special-crawlers.json',
+        'user-triggered-fetchers' => 'https://developers.google.com/crawling/ipranges/user-triggered-fetchers.json',
+        'user-triggered-fetchers-google' => 'https://developers.google.com/crawling/ipranges/user-triggered-fetchers-google.json',
+        'user-triggered-agents' => 'https://developers.google.com/crawling/ipranges/user-triggered-agents.json',
     ];
     
     

@@ -279,8 +279,8 @@ class VietShield_Admin_Dashboard {
 
         // Malware scan scope
         $scope = sanitize_text_field($input['malware_scan_scope'] ?? 'all');
-        $allowed_scopes = ['all', 'themes', 'plugins', 'uploads'];
-        $sanitized['malware_scan_scope'] = in_array($scope, $allowed_scopes, true) ? $scope : 'all';
+        $allowed_scopes = [ 'all', 'themes', 'plugins', 'mu-plugins', 'uploads' ];
+        $sanitized['malware_scan_scope'] = in_array( $scope, $allowed_scopes, true) ? $scope : 'all';
 
         // Threat Intelligence category
         $threat_category = sanitize_text_field($input['threat_intel_category'] ?? '');
@@ -692,6 +692,35 @@ class VietShield_Admin_Dashboard {
         $stats = $logger->get_stats($days);
         
         wp_send_json_success($stats);
+    }
+
+    /**
+     * AJAX: Get login statistics
+     */
+    public function ajax_get_login_stats() {
+        check_ajax_referer('vietshield_admin', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        require_once VIETSHIELD_PLUGIN_DIR . 'includes/integrations/class-login-security.php';
+        $login_security = new \VietShield\Integrations\LoginSecurity();
+
+        $days = isset($_POST['days']) ? absint($_POST['days']) : 7;
+        if ($days < 1 || $days > 90) {
+            $days = 7;
+        }
+
+        $stats = $login_security->get_login_stats($days);
+        $recent_failed = $login_security->get_recent_failed_attempts(20);
+        $top_ips = $login_security->get_top_attacking_ips(10, $days);
+
+        wp_send_json_success([
+            'stats' => $stats,
+            'recent_failed' => $recent_failed,
+            'top_ips' => $top_ips,
+        ]);
     }
     
     /**

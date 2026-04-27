@@ -134,6 +134,8 @@ $vswaf_schedule = $vswaf_options['file_scan_schedule'] ?? 'weekly';
                     <tr>
                         <th><?php esc_html_e('Status', 'vietshield-waf'); ?></th>
                         <th><?php esc_html_e('File Path', 'vietshield-waf'); ?></th>
+                        <th><?php esc_html_e('Zone', 'vietshield-waf'); ?></th>
+                        <th title="<?php esc_attr_e('Machine-readable reason (e.g. modified checksum vs unknown in core area)', 'vietshield-waf'); ?>"><?php esc_html_e('Reason', 'vietshield-waf'); ?></th>
                         <th><?php esc_html_e('Expected Hash', 'vietshield-waf'); ?></th>
                         <th><?php esc_html_e('Actual Hash', 'vietshield-waf'); ?></th>
                         <th><?php esc_html_e('Size', 'vietshield-waf'); ?></th>
@@ -142,7 +144,7 @@ $vswaf_schedule = $vswaf_options['file_scan_schedule'] ?? 'weekly';
                 </thead>
                 <tbody>
                     <tr class="empty-row">
-                        <td colspan="6"><?php esc_html_e('No scan results yet. Run a scan to view findings.', 'vietshield-waf'); ?></td>
+                        <td colspan="8"><?php esc_html_e('No scan results yet. Run a scan to view findings.', 'vietshield-waf'); ?></td>
                     </tr>
                 </tbody>
             </table>

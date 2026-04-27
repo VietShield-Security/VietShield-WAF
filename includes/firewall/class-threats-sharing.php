@@ -291,10 +291,10 @@ class ThreatsSharing {
         $results = [];
         
         foreach ($chunks as $chunk) {
-            $response = wp_remote_post('http://ip-api.com/batch?fields=query,status,countryCode,org,as', [
+            $response = wp_remote_post('https://ip-api.com/batch?fields=query,status,countryCode,org,as', [
                 'body' => json_encode($chunk),
                 'timeout' => 10,
-                'sslverify' => false
+                'sslverify' => true
             ]);
             
             if (!is_wp_error($response)) {

@@ -275,11 +275,11 @@ class VietShield_Admin_Wizard {
                 delete_option('vietshield_wizard_step_' . $i);
             }
             
-            // Ensure IP lists table exists (for Googlebot whitelist)
-            $this->ensure_ip_lists_table();
-            
-            // Ensure threat intel table exists
-            $this->ensure_threat_intel_table();
+            // Ensure canonical schema is up to date.
+            // Use the activator migrator to avoid wizard/runtime schema drift.
+            if (class_exists('VietShield_Activator')) {
+                \VietShield_Activator::maybe_upgrade();
+            }
             
             // Get options for sync decisions
             $options = get_option('vietshield_options', []);
@@ -325,73 +325,6 @@ class VietShield_Admin_Wizard {
                 'message' => $e->getMessage(),
                 'error' => $e->getMessage()
             ]);
-        }
-    }
-    
-    /**
-     * Ensure IP lists table exists
-     */
-    private function ensure_ip_lists_table() {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'vietshield_ip_lists';
-        
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name));
-        
-        if ($table_exists !== $table_name) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
-            error_log("VietShield Wizard: Creating ip_lists table");
-            
-            $charset_collate = $wpdb->get_charset_collate();
-            
-            $sql = "CREATE TABLE {$table_name} (
-                id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-                ip_address varchar(45) NOT NULL,
-                list_type enum('whitelist','blocklist') NOT NULL DEFAULT 'blocklist',
-                reason varchar(255) DEFAULT NULL,
-                created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                expires_at datetime DEFAULT NULL,
-                hit_count int(11) NOT NULL DEFAULT 0,
-                PRIMARY KEY (id),
-                KEY ip_address (ip_address),
-                KEY list_type (list_type)
-            ) {$charset_collate};";
-            
-            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-            dbDelta($sql);
-        }
-    }
-    
-    /**
-     * Ensure threat intelligence table exists
-     */
-    private function ensure_threat_intel_table() {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'vietshield_threat_intel';
-        
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name));
-        
-        if ($table_exists !== $table_name) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WAF debug logging
-            error_log("VietShield Wizard: Creating threat_intel table");
-            
-            $charset_collate = $wpdb->get_charset_collate();
-            
-            $sql = "CREATE TABLE {$table_name} (
-                id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-                ip_address varchar(45) NOT NULL,
-                category varchar(50) NOT NULL,
-                source varchar(100) DEFAULT NULL,
-                last_seen datetime DEFAULT NULL,
-                created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (id),
-                UNIQUE KEY ip_category (ip_address, category),
-                KEY category (category)
-            ) {$charset_collate};";
-            
-            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-            dbDelta($sql);
         }
     }
     

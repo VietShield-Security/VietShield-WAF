@@ -436,7 +436,7 @@
             $tbody.empty();
 
             if (!items.length) {
-                $tbody.html('<tr class="empty-row"><td colspan="6">No issues found for this filter.</td></tr>');
+                $tbody.html('<tr class="empty-row"><td colspan="8">No issues found for this filter.</td></tr>');
                 return;
             }
 
@@ -444,10 +444,14 @@
                 var statusClass = 'scan-status-' + escapeHtml(item.status || 'unknown');
                 var sizeText = item.file_size ? formatBytes(item.file_size) : '-';
                 var mtimeText = item.file_mtime ? escapeHtml(item.file_mtime) : '-';
+                var zoneText = item.location_zone ? escapeHtml(item.location_zone) : '-';
+                var reasonText = item.reason_code ? '<code class="reason-code" title="Reason code">' + escapeHtml(item.reason_code) + '</code>' : '-';
 
                 var row = '<tr>' +
                     '<td><span class="scan-status ' + statusClass + '">' + escapeHtml(item.status || '') + '</span></td>' +
                     '<td><code>' + escapeHtml(item.file_path || '') + '</code></td>' +
+                    '<td>' + zoneText + '</td>' +
+                    '<td>' + reasonText + '</td>' +
                     '<td class="hash-col">' + (item.expected_hash ? '<code>' + escapeHtml(item.expected_hash) + '</code>' : '-') + '</td>' +
                     '<td class="hash-col">' + (item.actual_hash ? '<code>' + escapeHtml(item.actual_hash) + '</code>' : '-') + '</td>' +
                     '<td>' + sizeText + '</td>' +
@@ -477,7 +481,7 @@
 
         function renderScanEmpty(message) {
             var $tbody = $('#scan-results-table tbody');
-            $tbody.html('<tr class="empty-row"><td colspan="6">' + escapeHtml(message) + '</td></tr>');
+            $tbody.html('<tr class="empty-row"><td colspan="8">' + escapeHtml(message) + '</td></tr>');
         }
 
         $('#vietshield-run-scan').on('click', function (e) {
@@ -608,7 +612,7 @@
             $tbody.empty();
 
             if (!items.length) {
-                $tbody.html('<tr class="empty-row"><td colspan="6">No issues found. Your site appears clean!</td></tr>');
+                $tbody.html('<tr class="empty-row"><td colspan="7">No issues found. Your site appears clean!</td></tr>');
                 return;
             }
 
@@ -617,9 +621,14 @@
                 var sizeText = item.file_size ? formatBytes(item.file_size) : '-';
                 var mtimeText = item.file_mtime ? escapeHtml(item.file_mtime) : '-';
                 var findingsCount = item.findings ? item.findings.length : 0;
+                var riskScore = parseInt(item.risk_score, 10);
+                if (isNaN(riskScore)) {
+                    riskScore = 0;
+                }
 
                 var row = '<tr data-item-id="' + item.id + '">' +
                     '<td><span class="severity ' + severityClass + '">' + escapeHtml((item.severity || 'low').toUpperCase()) + '</span></td>' +
+                    '<td><span class="risk-score" title="Weighted score (max 1000)">' + riskScore + '</span></td>' +
                     '<td><code class="file-path-code">' + escapeHtml(item.file_path || '') + '</code></td>' +
                     '<td>' + escapeHtml(item.file_type || 'unknown') + '</td>' +
                     '<td><button class="button button-small view-malware-findings" data-findings=\'' + escapeAttr(JSON.stringify(item.findings || [])) + '\' data-filepath="' + escapeAttr(item.file_path) + '">' + findingsCount + ' finding(s)</button></td>' +
@@ -650,7 +659,7 @@
 
         function renderMalwareEmpty(message) {
             var $tbody = $('#malware-results-table tbody');
-            $tbody.html('<tr class="empty-row"><td colspan="6">' + escapeHtml(message) + '</td></tr>');
+            $tbody.html('<tr class="empty-row"><td colspan="7">' + escapeHtml(message) + '</td></tr>');
         }
 
         function escapeAttr(str) {
@@ -665,7 +674,7 @@
 
             // Show scanning state with animation
             $btn.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Scanning...');
-            $('#malware-results-table tbody').html('<tr class="scanning-row"><td colspan="6"><span class="spinner is-active"></span> Scanning ' + scope + ' files for malware... This may take a moment.</td></tr>');
+            $('#malware-results-table tbody').html('<tr class="scanning-row"><td colspan="7"><span class="spinner is-active"></span> Scanning ' + scope + ' files for malware... This may take a moment.</td></tr>');
 
             // Reset stats to show scanning
             $('#malware-total-files, #malware-clean-files, #malware-infected-files, #malware-suspicious-files').text('...');
@@ -756,6 +765,9 @@
                     html += '<div class="finding-item">';
                     html += '<div class="finding-header">';
                     html += '<span class="severity ' + severityClass + '">' + escapeHtml((f.severity || 'low').toUpperCase()) + '</span>';
+                    if (f.score !== undefined && f.score !== null) {
+                        html += ' <span class="finding-score" title="Weighted contribution">[' + escapeHtml(String(f.score)) + ']</span> ';
+                    }
                     html += '<strong>' + escapeHtml(f.name || 'Unknown') + '</strong>';
                     html += '<span class="rule-id">' + escapeHtml(f.rule_id || '') + '</span>';
                     html += '</div>';

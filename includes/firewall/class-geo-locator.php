@@ -127,11 +127,11 @@ class GeoLocator {
      * @return string|false
      */
     private function get_country_ipapi($ip) {
-        $url = 'http://ip-api.com/json/' . urlencode($ip) . '?fields=status,countryCode';
+        $url = 'https://ip-api.com/json/' . urlencode($ip) . '?fields=status,countryCode';
         
         $response = wp_remote_get($url, [
             'timeout' => 3,
-            'sslverify' => false,
+            'sslverify' => true,
         ]);
         
         if (is_wp_error($response)) {

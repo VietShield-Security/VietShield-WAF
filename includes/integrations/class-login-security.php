@@ -388,7 +388,7 @@ class LoginSecurity {
         $is_trusted = false;
         if (!empty($trusted_proxies)) {
             foreach ($trusted_proxies as $proxy) {
-                if ($remote_addr === $proxy) {
+                if ($this->is_trusted_proxy($remote_addr, $proxy)) {
                     $is_trusted = true;
                     break;
                 }
@@ -416,6 +416,88 @@ class LoginSecurity {
         }
 
         return filter_var($remote_addr, FILTER_VALIDATE_IP) ? $remote_addr : '0.0.0.0';
+    }
+
+    /**
+     * Check whether proxy definition matches current REMOTE_ADDR.
+     *
+     * @param string $remote_addr Current remote IP.
+     * @param string $proxy Proxy IP or CIDR.
+     * @return bool
+     */
+    private function is_trusted_proxy($remote_addr, $proxy) {
+        if (strpos($proxy, '/') !== false) {
+            return $this->ip_in_cidr($remote_addr, $proxy);
+        }
+
+        return $remote_addr === $proxy;
+    }
+
+    /**
+     * Check if an IP is in CIDR range (IPv4/IPv6).
+     *
+     * @param string $ip Client IP.
+     * @param string $cidr CIDR expression.
+     * @return bool
+     */
+    private function ip_in_cidr($ip, $cidr) {
+        $parts = explode('/', $cidr, 2);
+        if (count($parts) !== 2) {
+            return false;
+        }
+
+        list($subnet, $bits) = $parts;
+        $bits = (int) $bits;
+
+        // IPv6 CIDR
+        if (filter_var($subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            if ($bits < 0 || $bits > 128) {
+                return false;
+            }
+
+            $ip_bin = inet_pton($ip);
+            $subnet_bin = inet_pton($subnet);
+            if ($ip_bin === false || $subnet_bin === false) {
+                return false;
+            }
+
+            $ip_hex = bin2hex($ip_bin);
+            $subnet_hex = bin2hex($subnet_bin);
+            $full_hex_chars = intdiv($bits, 4);
+            $remainder_bits = $bits % 4;
+
+            if (substr($ip_hex, 0, $full_hex_chars) !== substr($subnet_hex, 0, $full_hex_chars)) {
+                return false;
+            }
+
+            if ($remainder_bits > 0 && $full_hex_chars < strlen($ip_hex)) {
+                $ip_nibble = hexdec($ip_hex[$full_hex_chars]);
+                $subnet_nibble = hexdec($subnet_hex[$full_hex_chars]);
+                $mask = (0xF << (4 - $remainder_bits)) & 0xF;
+                if (($ip_nibble & $mask) !== ($subnet_nibble & $mask)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // IPv4 CIDR
+        if (!filter_var($subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return false;
+        }
+        if ($bits < 0 || $bits > 32) {
+            return false;
+        }
+
+        $ip_long = ip2long($ip);
+        $subnet_long = ip2long($subnet);
+        if ($ip_long === false || $subnet_long === false) {
+            return false;
+        }
+
+        $mask = ($bits === 0) ? 0 : ((-1 << (32 - $bits)) & 0xFFFFFFFF);
+        return ($ip_long & $mask) === ($subnet_long & $mask);
     }
     
     /**

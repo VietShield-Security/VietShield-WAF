@@ -3,7 +3,7 @@ Contributors: vietshield
 Tags: security, firewall, waf, malware, protection
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -75,6 +75,13 @@ You can manually remove your IP from the `vietshield_ip_lists` database table us
 3.  **Live traffic logs**
 
 == Changelog ==
+
+= 1.1.2 =
+*   Improved: Core integrity scanner — zone labels and reason codes for easier triage
+*   Improved: Malware scanner — staged scanning (baseline hash, prefilter), risk scoring and severity mapping
+*   Improved: Database migration for new scanner columns on upgrade
+*   Improved: Scanner admin tables — zone, reason, risk score; malware scan scope includes mu-plugins
+*   Improved: Autoloader registers MalwareScanner for reliable loading
 
 = 1.1.1 =
 *   New: Hide Admin Login - Custom login URL slug, blocks default /wp-login.php and /wp-admin with 403 Forbidden

@@ -97,6 +97,7 @@ class FileScanner {
             $actual_hash = md5_file($absolute);
             if ($actual_hash !== $expected_hash) {
                 $summary['modified_files']++;
+                $zone = $this->get_core_location_zone($relative);
                 $this->insert_item($table_items, $scan_id, [
                     'file_path' => $relative,
                     'status' => 'modified',
@@ -105,6 +106,8 @@ class FileScanner {
                     'file_size' => filesize($absolute),
                     'file_mtime' => gmdate('Y-m-d H:i:s', filemtime($absolute)),
                     'file_type' => 'core',
+                    'location_zone' => $zone,
+                    'reason_code' => 'MODIFIED_CORE_CHECKSUM',
                 ]);
             } else {
                 $summary['ok_files']++;
@@ -219,8 +222,7 @@ class FileScanner {
     private function insert_item($table, $scan_id, $data) {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
-        $wpdb->insert($table, [
+        $row = [
             'scan_id' => $scan_id,
             'file_path' => $data['file_path'],
             'status' => $data['status'],
@@ -229,7 +231,16 @@ class FileScanner {
             'file_size' => $data['file_size'],
             'file_mtime' => $data['file_mtime'],
             'file_type' => $data['file_type'],
-        ]);
+        ];
+        if (array_key_exists('reason_code', $data)) {
+            $row['reason_code'] = $data['reason_code'];
+        }
+        if (array_key_exists('location_zone', $data)) {
+            $row['location_zone'] = $data['location_zone'];
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WAF performance
+        $wpdb->insert($table, $row);
     }
 
     /**
@@ -258,6 +269,7 @@ class FileScanner {
                     continue;
                 }
                 $summary['unknown_files']++;
+                $zone = $this->get_core_location_zone($relative);
                 $this->insert_item($table_items, $scan_id, [
                     'file_path' => $relative,
                     'status' => 'unknown',
@@ -266,6 +278,8 @@ class FileScanner {
                     'file_size' => $file->getSize(),
                     'file_mtime' => gmdate('Y-m-d H:i:s', $file->getMTime()),
                     'file_type' => 'core',
+                    'location_zone' => $zone,
+                    'reason_code' => $this->get_unknown_file_reason_code($zone),
                 ]);
             }
         }
@@ -285,6 +299,7 @@ class FileScanner {
                 continue;
             }
             $summary['unknown_files']++;
+            $zone = $this->get_core_location_zone($relative);
             $this->insert_item($table_items, $scan_id, [
                 'file_path' => $relative,
                 'status' => 'unknown',
@@ -293,7 +308,47 @@ class FileScanner {
                 'file_size' => $file->getSize(),
                 'file_mtime' => gmdate('Y-m-d H:i:s', $file->getMTime()),
                 'file_type' => 'core',
+                'location_zone' => $zone,
+                'reason_code' => $this->get_unknown_file_reason_code($zone),
             ]);
+        }
+    }
+
+    /**
+     * Classify file path into a core zone (for triage / reporting).
+     *
+     * @param string $relative Relative path from ABSPATH.
+     * @return string
+     */
+    private function get_core_location_zone($relative) {
+        $relative = ltrim((string) $relative, '/');
+        if (strpos($relative, 'wp-admin/') === 0 || $relative === 'wp-admin') {
+            return 'wp_admin';
+        }
+        if (strpos($relative, 'wp-includes/') === 0 || $relative === 'wp-includes') {
+            return 'wp_includes';
+        }
+        if (strpos($relative, 'wp-content/') === 0) {
+            return 'wp_content';
+        }
+        return 'core_root';
+    }
+
+    /**
+     * Machine-readable reason for unknown core file (not in official checksum set).
+     *
+     * @param string $zone Zone from get_core_location_zone().
+     * @return string
+     */
+    private function get_unknown_file_reason_code($zone) {
+        switch ($zone) {
+            case 'wp_admin':
+                return 'UNKNOWN_NOT_IN_OFFICIAL_SET_WPADMIN';
+            case 'wp_includes':
+                return 'UNKNOWN_NOT_IN_OFFICIAL_SET_INCLUDES';
+            case 'core_root':
+            default:
+                return 'UNKNOWN_NOT_IN_OFFICIAL_SET_ROOT';
         }
     }
 

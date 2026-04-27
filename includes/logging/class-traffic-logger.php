@@ -175,7 +175,14 @@ class TrafficLogger {
         
         $blocked = ($data['action'] === 'blocked') ? 1 : 0;
         $rate_limited = ($data['action'] === 'rate_limited') ? 1 : 0;
-        $threat_intel = ($data['action'] === 'threat_intelligence') ? 1 : 0;
+        $threat_intel = (
+            ($data['action'] ?? '') === 'blocked' &&
+            (
+                ($data['attack_type'] ?? '') === 'threat_intelligence' ||
+                ($data['attack_type'] ?? '') === 'threat_intel' ||
+                ($data['rule_id'] ?? '') === 'threat_intelligence'
+            )
+        ) ? 1 : 0;
         
         $sqli = ($data['attack_type'] === 'sqli') ? 1 : 0;
         $xss = ($data['attack_type'] === 'xss') ? 1 : 0;
@@ -501,10 +508,10 @@ class TrafficLogger {
         
         // Fallback to external API (ip-api.com)
         // Call API
-        $api_url = 'http://ip-api.com/json/' . urlencode($ip) . '?fields=status,countryCode,as';
+        $api_url = 'https://ip-api.com/json/' . urlencode($ip) . '?fields=status,countryCode,as';
         $response = wp_remote_get($api_url, [
             'timeout' => 5,
-            'sslverify' => false,
+            'sslverify' => true,
         ]);
         
         $metadata = [
