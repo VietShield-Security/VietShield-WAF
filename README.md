@@ -199,6 +199,7 @@ You can get support through our [GitHub Issues](https://github.com/VietShield-Se
 - Database schema bump for new scanner metadata fields; automatic upgrade on plugin load
 - Scanner admin UI: optional columns for zone, reason, and risk score; malware scope can include mu-plugins
 - Autoloader: `MalwareScanner` registered for consistent class loading
+- Updated: Googlebot IP ranges have changed according to the Google Developers site.
 
 ### Version 1.1.1 (2026-03-18)
 **New Features:**

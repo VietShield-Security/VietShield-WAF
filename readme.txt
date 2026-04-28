@@ -82,6 +82,7 @@ You can manually remove your IP from the `vietshield_ip_lists` database table us
 *   Improved: Database migration for new scanner columns on upgrade
 *   Improved: Scanner admin tables — zone, reason, risk score; malware scan scope includes mu-plugins
 *   Improved: Autoloader registers MalwareScanner for reliable loading
+*   Updated: Googlebot IP ranges have changed according to the Google Developers site.
 
 = 1.1.1 =
 *   New: Hide Admin Login - Custom login URL slug, blocks default /wp-login.php and /wp-admin with 403 Forbidden
